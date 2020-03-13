@@ -124,11 +124,11 @@ class Main extends Component {
       .catch(error => {
         console.log(error.response);
         // handling
-        // if (error && error.response.status === 404) {
-        //   this.setState({
-        //     errors: { ...this.state.errors, login: "username or password is not valid!" }
-        //   });
-        // }
+        if (error && error.response.status === 404) {
+          this.setState({
+            errors: { ...this.state.errors, login: "username or password is not valid!" }
+          });
+        }
       });
   };
 
