@@ -5,8 +5,9 @@ import "../index.css";
 
 export default function Footer() {
   return (
-      <div className="mt-5 mb-4">
-        <div className="footer">
+    <div className="footer">
+      <div className="container">
+        <div className="mt-5 mb-4">
           <hr />
           <p>&copy; code.it Team, All rights reserved, 2020</p>
           Made with <span style={{ color: "red" }}>♥</span> by{" "}
@@ -14,5 +15,6 @@ export default function Footer() {
           <a href="https://www.linkedin.com/in/abedeljalil-jarjanazy/"> Jalil</a>
         </div>
       </div>
+    </div>
   );
 }

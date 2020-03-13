@@ -1,12 +1,13 @@
 /** @format */
 
+import PropTypes from "prop-types";
 import React, { Component } from "react";
-import { Navbar, NavbarBrand, NavbarToggler, Collapse, Nav, NavItem, NavLink } from "reactstrap";
+import { Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem } from "reactstrap";
 
-const navStyle = { fontSize: 25, backgroundColor: "#1C8EF9" };
+const navStyle = { fontSize: 25 };
 
 export default class Header extends Component {
-  constructor(props) {
+  constructor( props) {
     super(props);
     this.state = {
       isNavOpen: false
@@ -19,22 +20,17 @@ export default class Header extends Component {
   render() {
     return (
       <div>
-        <Navbar dark expand="md" style={navStyle}>
+        <Navbar dark expand="md" style={navStyle} color="dark">
           <NavbarBrand href="/" className="mr-auto">
-            <img src="/survey.svg" height="40px" alt="logo" />
+            <img src="/survey.svg" height="50px" alt="logo" />
           </NavbarBrand>
           <NavbarToggler onClick={this.toggle} />
           <Collapse navbar isOpen={this.state.isNavOpen}>
             <Nav navbar className="ml-auto">
               <NavItem>
-                <NavLink>
-                  <i class="fa fa-sign-in"></i> Login
-                </NavLink>
-              </NavItem>
-              <NavItem className="ml-5">
-                <NavLink>
-                  <i class="fa fa-user-plus"></i> Signup
-                </NavLink>
+                <Button className="m-2" outline onClick={() => this.props.logout()}>
+                  <i className="fa fa-sign-out"></i> Logout
+                </Button>
               </NavItem>
             </Nav>
           </Collapse>
@@ -43,3 +39,8 @@ export default class Header extends Component {
     );
   }
 }
+
+// prop types
+Header.propTypes = {
+  logout: PropTypes.func.isRequired
+};
