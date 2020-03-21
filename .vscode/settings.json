@@ -17,5 +17,10 @@
     "fortawesome",
     "free"
   ],
-  "editor.minimap.size": "fit"
+  "editor.minimap.size": "fit",
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true
+  }
 }

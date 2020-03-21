@@ -3,39 +3,42 @@
 import Axios from "axios";
 import React, { Component } from "react";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
+import * as ROUTES from "../shared/routes";
+import AuthRoute from "./AuthRouteComponent";
 import Footer from "./FooterComponent";
 import Home from "./HomeComponent";
 import Login from "./LoginComponent";
 import Signup from "./SignupComponent";
-import AuthRoute from "./AuthRouteComponent";
 
 // Global Variables
 const HOST = "https://calm-depths-29681.herokuapp.com/";
-// * Routes
-const HOME = "/";
-const LOGIN = "/login";
-const SIGNUP = "/signup";
+const INITIAL_STATE = {
+  jwt: "",
+  fields: { username: "", password: "", password_confirm: "" },
+  errors: {
+    username: "",
+    password: "",
+    password_confirm: ""
+  }
+};
 
 class Main extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      jwt: "",
-      fields: { username: "", password: "" },
-      errors: {
-        username: "",
-        password: "",
-        login: ""
-      }
-    };
+    this.state = INITIAL_STATE;
     // Binding
     this.onChange = this.onChange.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
+    this.onLoginSubmit = this.onLoginSubmit.bind(this);
+    this.onSignupSubmit = this.onSignupSubmit.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.signupOnClick = this.signupOnClick.bind(this);
   }
-  // event handlers
-  /**
+
+  // ############################################################
+  // ################       event handlers       ################
+  // ############################################################
+
+  /** Set state to input values
    * @param {{ target: object; }} event
    */
   onChange = event => {
@@ -45,21 +48,25 @@ class Main extends Component {
     this.setState({ fields: { ...this.state.fields, [name]: value } });
   };
 
+  // Redirect to Signup page
   signupOnClick = () => {
-    this.props.history.push("/signup");
+    this.props.history.push(ROUTES.SIGNUP);
   };
 
-  /**
+  /** Validate input rules on blur
    * @param {object} field
    */
   onBlur = field => {
     // destructor
-    const { username, password } = this.state.fields;
+    const { username, password, password_confirm } = this.state.fields;
     // on Blur apply validations
     if (field === "username") {
       if (username.length < 3)
         this.setState({
-          errors: { ...this.state.errors, username: <p>Username should be >= 3 characters!</p> }
+          errors: {
+            ...this.state.errors,
+            username: <p>Username should be >= 3 characters!</p>
+          }
         });
       else {
         this.setState({ errors: { ...this.state.errors, username: "" } });
@@ -67,7 +74,10 @@ class Main extends Component {
     } else if (field === "password") {
       if (password.length < 3)
         this.setState({
-          errors: { ...this.state.errors, password: <p>Password should be >= 3 characters!</p> }
+          errors: {
+            ...this.state.errors,
+            password: <p>Password should be >= 3 characters!</p>
+          }
         });
 
       // if no errors
@@ -77,34 +87,79 @@ class Main extends Component {
         });
       }
     }
+    // only for signup form
+    else if (field === "password_confirm") {
+      if (password_confirm !== password) {
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            password_confirm: <p>Please make sure your passwords match!</p>
+          }
+        });
+      } else {
+        this.setState({
+          errors: { ...this.state.errors, password_confirm: "" }
+        });
+      }
+    }
   };
 
-  /**
+  /** When submit the form, Login with the passed credentials to obtain the `JWT`
    * @param {{ preventDefault: () => void; }} event
    */
-  onSubmit = event => {
+  onLoginSubmit = event => {
     event.preventDefault();
     // check if form is valid
     const errors = this.state.errors;
     const { username, password } = this.state.fields;
-    if (errors.username === "" && username !== "" && errors.password === "" && password !== "") {
-      this.login(HOST + "authenticate", this.state.fields.username, this.state.fields.password);
+    if (
+      errors.username === "" &&
+      username !== "" &&
+      errors.password === "" &&
+      password !== ""
+    ) {
+      this.login(
+        HOST + "authenticate",
+        this.state.fields.username,
+        this.state.fields.password
+      );
     }
   };
-  // methods
-  resetState = () => {
-    this.setState({
-      jwt: "",
-      fields: { username: "", password: "" },
-      errors: {
-        username: "",
-        password: "",
-        login: ""
-      }
-    });
+
+  onSignupSubmit = event => {
+    event.preventDefault();
+    // check if form is valid
+    const errors = this.state.errors;
+    const { username, password, password_confirm } = this.state.fields;
+    if (
+      errors.username === "" &&
+      username !== "" &&
+      errors.password === "" &&
+      password !== "" &&
+      errors.password_confirm === "" &&
+      password_confirm !== ""
+    ) {
+      this.signup(
+        HOST + "signUp",
+        this.state.fields.username,
+        this.state.fields.password
+      );
+    } else{
+      // handle clicking on submit button without filling all fields
+      this.setState({errors: {...this.state.errors, signup: <p>Please Fill in the form fields!</p> }})
+    }
   };
 
-  /**
+  // ############################################################
+  // ###############       Helper Functions       ###############
+  // ############################################################
+
+  // Reset the state to the initial values
+  resetState = () => {
+    this.setState(INITIAL_STATE);
+  };
+
+  /** The Login function
    * @param {string} _username
    * @param {string} _password
    * @param {string} _url
@@ -117,8 +172,10 @@ class Main extends Component {
       .then(res => {
         // if correct response
         if (res.status === 200) {
+          console.log(res);
           this.setState({ jwt: res.data.jwt });
-          this.props.history.push("/");
+          localStorage.setItem("jwt", res.data.jwt);
+          this.props.history.push(ROUTES.HOME);
         }
       })
       .catch(error => {
@@ -126,22 +183,58 @@ class Main extends Component {
         // handling
         if (error && error.response.status === 404) {
           this.setState({
-            errors: { ...this.state.errors, login: "username or password is not valid!" }
+            errors: {
+              ...this.state.errors,
+              login: "username or password is not valid!"
+            }
           });
         }
       });
   };
 
+  /* Reset to the initial state, remove the token from the local 
+   storage, and redirect to login page
+  */
   logout = () => {
     this.resetState();
-    this.props.history.push(LOGIN);
+    localStorage.clear();
+    this.props.history.push(ROUTES.LOGIN);
   };
 
-  // pages rendering
+  /**
+   * @param {string} _url
+   * @param {string} _username
+   * @param {string} _password
+   */
+  signup = (_url, _username, _password) => {
+    Axios.post(_url, {
+      username: _username,
+      password: _password,
+      authority: {
+        role: "ROLE_USER"
+      }
+    })
+      .then(res => {
+        console.log(res);
+        // if user added successfully, redirect to login page and
+        // fill in the credentials
+        if (res.status === 200) {
+          this.props.history.push(ROUTES.LOGIN);
+        }
+      })
+      .catch(error => {
+        console.log(error.response);
+      });
+  };
+
+  // ############################################################
+  // ################       Pages Rendering       ###############
+  // ############################################################
+
   loginPage = () => {
     return (
       <Login
-        onSubmit={event => this.onSubmit(event)}
+        onSubmit={event => this.onLoginSubmit(event)}
         onChange={event => this.onChange(event)}
         onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
@@ -152,12 +245,25 @@ class Main extends Component {
   };
 
   signupPage = () => {
-    return <Signup />;
+    return (
+      <Signup
+        onSubmit={event => this.onSignupSubmit(event)}
+        onChange={event => this.onChange(event)}
+        onBlur={field => this.onBlur(field)}
+        fields={this.state.fields}
+        errors={this.state.errors}
+      />
+    );
   };
 
   goToHomePage = () => {
-    this.props.history.push("/")
-  }
+    // remove token from local storage & clear the form data
+    localStorage.clear();
+    this.resetState();
+    this.props.history.push(ROUTES.HOME);
+  };
+
+  // ############################################################
 
   render() {
     return (
@@ -165,15 +271,15 @@ class Main extends Component {
         <Switch>
           <AuthRoute
             exact
-            isAuthenticated={this.state.jwt === "" ? false : true}
-            path={HOME}
-            redirectPath={LOGIN}
+            isAuthenticated={localStorage.getItem("jwt") ? true : false}
+            path={ROUTES.HOME}
             component={Home}
             logout={this.logout}
+            goToHomePage={this.goToHomePage}
           />
-          <Route path={LOGIN} component={this.loginPage} />
-          <Route path={SIGNUP} component={this.signupPage} />
-          <Redirect to={LOGIN} />
+          <Route path={ROUTES.LOGIN} component={this.loginPage} />
+          <Route path={ROUTES.SIGNUP} component={this.signupPage} />
+          <Redirect to={ROUTES.LOGIN} />
         </Switch>
         <Footer />
       </div>

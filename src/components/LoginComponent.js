@@ -2,18 +2,7 @@
 
 import PropTypes from "prop-types";
 import React from "react";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Form,
-  FormFeedback,
-  FormGroup,
-  Input,
-  Label,
-  Media
-} from "reactstrap";
+import { Button, Card, CardBody, CardHeader, Form, FormFeedback, FormGroup, Input, Label, Media } from "reactstrap";
 import "../index.css";
 
 function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
@@ -22,7 +11,12 @@ function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
       <div className="container">
         <div className="row">
           <div className="col-lg-6 col-sm-12 mb-4">
-            <Media src="/survey.svg" alt="logo" height="100px" className="mb-4 mt-4" />
+            <Media
+              src="/survey.svg"
+              alt="logo"
+              height="100px"
+              className="mb-4 mt-4"
+            />
             <h2>
               Build your own survey
               <br />
@@ -70,33 +64,32 @@ function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
                     <FormFeedback>{errors.password}</FormFeedback>
                   </FormGroup>
                   <FormGroup>
-                    <Button type="submit" outline className="btn-block mt-5" color="dark">
+                    <Button
+                      type="submit"
+                      outline
+                      className="btn-block mt-5"
+                      color="dark"
+                    >
                       Login
                     </Button>
-                    <div className="mt-2 text-danger">
-                      {errors.login}
-                    </div>
+                    <div className="mt-2 text-danger">{errors.login}</div>
                   </FormGroup>
-
                 </Form>
               </CardBody>
             </Card>
-            <div>
-              <FormGroup>
-                <br />
-                <h3>Or create a new account</h3>
-                <Button
-                  type="button"
-                  value="login"
-                  outline
-                  color="dark"
-                  className="mt-3 btn-block"
-                  onClick={() => signupOnClick()}
-                >
-                  Signup
-                </Button>
-              </FormGroup>
-            </div>
+            <FormGroup>
+              <br />
+              <h3>Or create a new account</h3>
+              <Button
+                type="button"
+                outline
+                color="dark"
+                className="mt-3 btn-block"
+                onClick={() => signupOnClick()}
+              >
+                Signup
+              </Button>
+            </FormGroup>
           </div>
         </div>
       </div>

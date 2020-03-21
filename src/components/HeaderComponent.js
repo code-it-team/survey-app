@@ -3,11 +3,12 @@
 import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem } from "reactstrap";
+import * as ROUTES from '../shared/routes';
 
 const navStyle = { fontSize: 25 };
 
 export default class Header extends Component {
-  constructor( props) {
+  constructor(props) {
     super(props);
     this.state = {
       isNavOpen: false
@@ -21,7 +22,7 @@ export default class Header extends Component {
     return (
       <div>
         <Navbar dark expand="md" style={navStyle} color="dark">
-          <NavbarBrand href="/" className="mr-auto">
+          <NavbarBrand href={ROUTES.HOME} className="mr-auto">
             <img src="/survey.svg" height="50px" alt="logo" />
           </NavbarBrand>
           <NavbarToggler onClick={this.toggle} />
