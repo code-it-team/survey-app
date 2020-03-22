@@ -2,7 +2,10 @@
 
 import Axios from "axios";
 import React, { Component } from "react";
+// @ts-ignore
+import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
+import { baseUrl } from "../shared/baseUrl";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRouteComponent";
 import Footer from "./FooterComponent";
@@ -11,7 +14,6 @@ import Login from "./LoginComponent";
 import Signup from "./SignupComponent";
 
 // Global Variables
-const HOST = "https://calm-depths-29681.herokuapp.com/";
 const INITIAL_STATE = {
   jwt: "",
   fields: { username: "", password: "", password_confirm: "" },
@@ -32,6 +34,7 @@ class Main extends Component {
     this.onSignupSubmit = this.onSignupSubmit.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.signupOnClick = this.signupOnClick.bind(this);
+    this.loginOnClick = this.loginOnClick.bind(this);
   }
 
   // ############################################################
@@ -51,6 +54,11 @@ class Main extends Component {
   // Redirect to Signup page
   signupOnClick = () => {
     this.props.history.push(ROUTES.SIGNUP);
+  };
+
+  // Redirect to Login page
+  loginOnClick = () => {
+    this.props.history.push(ROUTES.LOGIN);
   };
 
   /** Validate input rules on blur
@@ -119,7 +127,7 @@ class Main extends Component {
       password !== ""
     ) {
       this.login(
-        HOST + "authenticate",
+        baseUrl + "authenticate",
         this.state.fields.username,
         this.state.fields.password
       );
@@ -139,14 +147,22 @@ class Main extends Component {
       errors.password_confirm === "" &&
       password_confirm !== ""
     ) {
+      // remove error messages if exist
+      this.setState({ errors: { ...this.state.errors, signup: "" } });
+
       this.signup(
-        HOST + "signUp",
+        baseUrl + "signUp",
         this.state.fields.username,
         this.state.fields.password
       );
-    } else{
+    } else {
       // handle clicking on submit button without filling all fields
-      this.setState({errors: {...this.state.errors, signup: <p>Please Fill in the form fields!</p> }})
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          signup: <p>Please Fill in the form fields!</p>
+        }
+      });
     }
   };
 
@@ -224,6 +240,15 @@ class Main extends Component {
       })
       .catch(error => {
         console.log(error.response);
+        // resolve 409 error which means duplicate username
+        if (error.response.status === 409) {
+          this.setState({
+            errors: {
+              ...this.state.errors,
+              signup: <p>Username already exists!</p>
+            }
+          });
+        }
       });
   };
 
@@ -252,6 +277,7 @@ class Main extends Component {
         onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
+        loginOnClick={this.loginOnClick}
       />
     );
   };
@@ -267,22 +293,24 @@ class Main extends Component {
 
   render() {
     return (
-      <div>
-        <Switch>
-          <AuthRoute
-            exact
-            isAuthenticated={localStorage.getItem("jwt") ? true : false}
-            path={ROUTES.HOME}
-            component={Home}
-            logout={this.logout}
-            goToHomePage={this.goToHomePage}
-          />
-          <Route path={ROUTES.LOGIN} component={this.loginPage} />
-          <Route path={ROUTES.SIGNUP} component={this.signupPage} />
-          <Redirect to={ROUTES.LOGIN} />
-        </Switch>
-        <Footer />
-      </div>
+      <Fade in delay={100} duration={700}>
+        <React.Fragment>
+          <Switch>
+            <AuthRoute
+              exact
+              isAuthenticated={localStorage.getItem("jwt") ? true : false}
+              path={ROUTES.HOME}
+              component={Home}
+              logout={this.logout}
+              goToHomePage={this.goToHomePage}
+            />
+            <Route path={ROUTES.LOGIN} component={this.loginPage} />
+            <Route path={ROUTES.SIGNUP} component={this.signupPage} />
+            <Redirect to={ROUTES.LOGIN} />
+          </Switch>
+          <Footer />
+        </React.Fragment>
+      </Fade>
     );
   }
 }

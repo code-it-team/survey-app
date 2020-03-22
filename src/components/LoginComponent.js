@@ -29,7 +29,7 @@ function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
                 <h2>Login</h2>
               </CardHeader>
               <CardBody>
-                <Form onSubmit={onSubmit}>
+                <Form onSubmit={onSubmit} name="loginForm">
                   <FormGroup>
                     <Label htmlFor="username">
                       <strong>Username</strong>

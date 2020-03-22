@@ -1,11 +1,11 @@
 {
+  "compileOnSave": true,
+  "typeAcquisition": {
+    "enable": true
+  },
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "checkJs": true,
-    "declaration": true,
     "jsx": "react"
-  },
-  "typeAcquisition": {
-    "enable": true
   }
 }
