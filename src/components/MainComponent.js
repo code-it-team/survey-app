@@ -9,6 +9,7 @@ import { baseUrl } from "../shared/baseUrl";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRouteComponent";
 import Footer from "./FooterComponent";
+import GeneralError from "./GeneralErrorComponent";
 import Home from "./HomeComponent";
 import Login from "./LoginComponent";
 import Signup from "./SignupComponent";
@@ -196,6 +197,12 @@ class Main extends Component {
       })
       .catch(error => {
         console.log(error.response);
+
+        // handle general error
+        if (!error.response) {
+          return this.props.history.push(ROUTES.GENERAL_ERROR);
+        }
+
         // handling
         if (error && error.response.status === 404) {
           this.setState({
@@ -240,6 +247,12 @@ class Main extends Component {
       })
       .catch(error => {
         console.log(error.response);
+
+        // handle general error
+        if (!error.response) {
+          return this.props.history.push(ROUTES.GENERAL_ERROR);
+        }
+
         // resolve 409 error which means duplicate username
         if (error.response.status === 409) {
           this.setState({
@@ -306,6 +319,7 @@ class Main extends Component {
             />
             <Route path={ROUTES.LOGIN} component={this.loginPage} />
             <Route path={ROUTES.SIGNUP} component={this.signupPage} />
+            <Route path={ROUTES.GENERAL_ERROR} component={GeneralError} />
             <Redirect to={ROUTES.LOGIN} />
           </Switch>
           <Footer />
