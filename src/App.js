@@ -2,6 +2,7 @@
 
 import React, { Component } from "react";
 import { BrowserRouter } from "react-router-dom";
+import "react-toastify/dist/ReactToastify.css";
 import Main from "./components/MainComponent";
 
 export default class App extends Component {

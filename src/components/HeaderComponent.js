@@ -5,8 +5,6 @@ import React, { Component } from "react";
 import { Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem } from "reactstrap";
 import * as ROUTES from "../shared/routes";
 
-const navStyle = { fontSize: 25 };
-
 export default class Header extends Component {
   constructor(props) {
     super(props);
@@ -20,10 +18,15 @@ export default class Header extends Component {
 
   render() {
     return (
-      <div>
-        <Navbar dark expand="md" style={navStyle} color="dark" fixed="top">
+      <div className="mb-3">
+        <Navbar
+          dark
+          expand="md"
+          color="dark"
+          fixed="top"
+        >
           <NavbarBrand href={ROUTES.HOME} className="mr-auto">
-            <img src="/survey.svg" height="50px" alt="logo" />
+            <img src="/survey.svg" height="30px" alt="logo" />
           </NavbarBrand>
           <NavbarToggler onClick={this.toggle} />
           <Collapse navbar isOpen={this.state.isNavOpen}>

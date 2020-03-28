@@ -6,6 +6,7 @@ import React, { Component } from "react";
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
 import { baseUrl } from "../shared/baseUrl";
+import { getJWT } from "../shared/helperFunctions";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRouteComponent";
 import Footer from "./FooterComponent";
@@ -17,12 +18,17 @@ import Signup from "./SignupComponent";
 // Global Variables
 const INITIAL_STATE = {
   jwt: "",
-  fields: { username: "", password: "", password_confirm: "" },
+  fields: { id: 0, username: "", password: "", password_confirm: "" },
   errors: {
     username: "",
     password: "",
-    password_confirm: ""
-  }
+    password_confirm: "",
+    login: "",
+    signup: "",
+    survey: "",
+    survey_name: ""
+  },
+  surveys: [] // list of all surveys
 };
 
 class Main extends Component {
@@ -34,8 +40,8 @@ class Main extends Component {
     this.onLoginSubmit = this.onLoginSubmit.bind(this);
     this.onSignupSubmit = this.onSignupSubmit.bind(this);
     this.onBlur = this.onBlur.bind(this);
-    this.signupOnClick = this.signupOnClick.bind(this);
-    this.loginOnClick = this.loginOnClick.bind(this);
+    this.signupRedirect = this.signupRedirect.bind(this);
+    this.loginRedirect = this.loginRedirect.bind(this);
   }
 
   // ############################################################
@@ -53,12 +59,12 @@ class Main extends Component {
   };
 
   // Redirect to Signup page
-  signupOnClick = () => {
+  signupRedirect = () => {
     this.props.history.push(ROUTES.SIGNUP);
   };
 
   // Redirect to Login page
-  loginOnClick = () => {
+  loginRedirect = () => {
     this.props.history.push(ROUTES.LOGIN);
   };
 
@@ -130,8 +136,18 @@ class Main extends Component {
       this.login(
         baseUrl + "authenticate",
         this.state.fields.username,
-        this.state.fields.password
+        this.state.fields.password,
+        this.getSurveys
       );
+    }
+    // else, if the login form was not filled in print it an error message
+    else {
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          login: <p>Please fill in the form fields!</p>
+        }
+      });
     }
   };
 
@@ -176,12 +192,38 @@ class Main extends Component {
     this.setState(INITIAL_STATE);
   };
 
+  // callback function to get the surveys of a user by id
+  getSurveys = _id => {
+    Axios.get(baseUrl + "getSurveysByUser", {
+      headers: {
+        Authorization: getJWT()
+      },
+      params: {
+        id: _id
+      }
+    })
+      .then(res => {
+        // correct response
+        if (res.status === 200) {
+          console.log(res);
+          this.setState({ surveys: res.data.surveyDTOS });
+
+          // save to locale storage
+          localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
+        }
+      })
+      .catch(err => {
+        console.log(err.response);
+      });
+  };
+
   /** The Login function
    * @param {string} _username
    * @param {string} _password
    * @param {string} _url
+   * @param {Function} getSurveys
    */
-  login = (_url, _username, _password) => {
+  login = (_url, _username, _password, getSurveys) => {
     Axios.post(_url, {
       username: _username,
       password: _password
@@ -189,10 +231,18 @@ class Main extends Component {
       .then(res => {
         // if correct response
         if (res.status === 200) {
-          console.log(res);
-          this.setState({ jwt: res.data.jwt });
+          // console.log(res);
+          this.setState({
+            jwt: res.data.jwt,
+            fields: { ...this.state.fields, id: res.data.surveyUserDTO.id }
+          });
           localStorage.setItem("jwt", res.data.jwt);
+          localStorage.setItem("username", this.state.fields.username);
+          localStorage.setItem("id", this.state.fields.id.toString());
           this.props.history.push(ROUTES.HOME);
+
+          // get the surveys' of this user
+          getSurveys(localStorage.getItem("id"));
         }
       })
       .catch(error => {
@@ -238,7 +288,7 @@ class Main extends Component {
       }
     })
       .then(res => {
-        console.log(res);
+        // console.log(res);
         // if user added successfully, redirect to login page and
         // fill in the credentials
         if (res.status === 200) {
@@ -277,7 +327,7 @@ class Main extends Component {
         onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
-        signupOnClick={this.signupOnClick}
+        signupOnClick={this.signupRedirect}
       />
     );
   };
@@ -290,16 +340,13 @@ class Main extends Component {
         onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
-        loginOnClick={this.loginOnClick}
+        loginOnClick={this.loginRedirect}
       />
     );
   };
 
-  goToHomePage = () => {
-    // remove token from local storage & clear the form data
-    localStorage.clear();
-    this.resetState();
-    this.props.history.push(ROUTES.HOME);
+  homePage = () => {
+    return <Home />;
   };
 
   // ############################################################
@@ -313,9 +360,8 @@ class Main extends Component {
               exact
               isAuthenticated={localStorage.getItem("jwt") ? true : false}
               path={ROUTES.HOME}
-              component={Home}
+              component={this.homePage}
               logout={this.logout}
-              goToHomePage={this.goToHomePage}
             />
             <Route path={ROUTES.LOGIN} component={this.loginPage} />
             <Route path={ROUTES.SIGNUP} component={this.signupPage} />
