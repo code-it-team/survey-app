@@ -43,7 +43,7 @@ function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
                       value={fields.username}
                       onChange={onChange}
                       onBlur={() => onBlur("username")}
-                      invalid={errors.username !== ""}
+                      invalid={errors.username !== null}
                     />
                     <FormFeedback>{errors.username}</FormFeedback>
                   </FormGroup>
@@ -59,7 +59,7 @@ function Login({ onSubmit, onChange, onBlur, fields, errors, signupOnClick }) {
                       placeholder="password"
                       onChange={onChange}
                       onBlur={() => onBlur("password")}
-                      invalid={errors.password !== ""}
+                      invalid={errors.password !== null}
                     />
                     <FormFeedback>{errors.password}</FormFeedback>
                   </FormGroup>

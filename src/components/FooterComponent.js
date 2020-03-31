@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <div className="footer">
       <div className="container">
-        <div className="mt-5 mb-4">
+        <div className="mb-4">
           <hr />
           <p>&copy; code.it Team, All rights reserved, 2020</p>
           Made with <span style={{ color: "red" }}>♥</span> by{" "}

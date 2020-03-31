@@ -43,7 +43,7 @@ function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
                       value={fields.username}
                       onChange={onChange}
                       onBlur={() => onBlur("username")}
-                      invalid={errors.username !== ""}
+                      invalid={errors.username !== null}
                     />
                     <FormFeedback>{errors.username}</FormFeedback>
                   </FormGroup>
@@ -59,7 +59,7 @@ function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
                       placeholder="password"
                       onChange={onChange}
                       onBlur={() => onBlur("password")}
-                      invalid={errors.password !== ""}
+                      invalid={errors.password !== null}
                     />
                     <FormFeedback>{errors.password}</FormFeedback>
                   </FormGroup>
@@ -75,7 +75,7 @@ function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
                       placeholder="password"
                       onChange={onChange}
                       onBlur={() => onBlur("password_confirm")}
-                      invalid={errors.password_confirm !== ""}
+                      invalid={errors.password_confirm !== null}
                     />
                     <FormFeedback>{errors.password_confirm}</FormFeedback>
                   </FormGroup>

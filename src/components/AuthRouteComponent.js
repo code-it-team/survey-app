@@ -3,6 +3,7 @@
 import PropTypes from "prop-types";
 import React from "react";
 import { Redirect, Route } from "react-router-dom";
+import { Container, Row } from "reactstrap";
 import * as Routes from "../shared/routes";
 import Header from "./HeaderComponent";
 export default function AuthRoute({
@@ -16,10 +17,12 @@ export default function AuthRoute({
       {...rest}
       render={() =>
         isAuthenticated ? (
-          <React.Fragment>
-            <Header logout={logout} />
-            <Component />
-          </React.Fragment>
+          <Container fluid>
+            <Row style={{ marginTop: "8rem", marginBottom: "2rem" }}>
+              <Header logout={logout} />
+              <Component />
+            </Row>
+          </Container>
         ) : (
           <Redirect to={Routes.LOGIN} />
         )

@@ -1,18 +1,52 @@
 /** @format */
 
-import Axios from "axios";
+import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Button, Col, Form, FormFeedback, FormGroup, Input, Label, Modal, ModalBody, ModalHeader, Table, UncontrolledCollapse, UncontrolledTooltip } from "reactstrap";
-import { baseUrl } from "../shared/baseUrl";
-import { getJWT, getUserId } from "../shared/helperFunctions";
+import { maxLength, minLength } from "../shared/globals";
 
-const TableRow = () => {
+// ############################################################
+// ############################################################
+// ###############       Helper Functions       ###############
+// ############################################################
+// ############################################################
+/**
+ * @param {object} survey_object
+ * @param {number} survey_count
+ */
+const renderTableRow = (survey_object, survey_count) => {
+  const {name} = survey_object
+  return (
+    <TableRow
+      survey_name={name}
+      survey_count={survey_count}
+      key={survey_count}
+    />
+  );
+};
+
+/**
+ * @param {string} field
+ * @param {object} error
+ */
+const isDisabled = (field, error) => {
+  if (!error && field.length >= minLength && field.length <= maxLength) return false;
+  return true;
+};
+
+const TableRow = (
+  /**
+   * @param {string} survey_name
+   * @param {number} survey_count
+   */
+  { survey_name, survey_count }
+) => {
   return (
     <tr>
-      <th scope="row">1</th>
+      <th scope="row">{survey_count+1}</th>
       <td>
-        <a href="/">survey 1</a>
+        <a href="/">{survey_name}</a>
       </td>
       <td>
         <i className="fa fa-trash-o" id="delete-survey"></i>
@@ -30,7 +64,15 @@ const TableRow = () => {
   );
 };
 
-const AddSurveyModal = ({ isModalOpen, toggle, onSubmit, onChange }) => {
+const AddSurveyModal = ({
+  isModalOpen,
+  toggle,
+  onSubmit,
+  onChange,
+  onBlur,
+  fields,
+  errors
+}) => {
   return (
     <React.Fragment>
       <Button className="m-3" color="success" onClick={toggle} id="add-survey">
@@ -55,11 +97,13 @@ const AddSurveyModal = ({ isModalOpen, toggle, onSubmit, onChange }) => {
                 id="survey_name"
                 className="form-control"
                 placeholder="Name"
+                value={fields.survey_name}
                 onChange={onChange}
+                onBlur={() => onBlur("survey_name")}
+                invalid={errors.survey_name !== null}
               />
-              <FormFeedback>{}</FormFeedback>
+              <FormFeedback>{errors.survey_name}</FormFeedback>
             </FormGroup>
-
             <FormGroup>
               <Button
                 type="submit"
@@ -67,6 +111,7 @@ const AddSurveyModal = ({ isModalOpen, toggle, onSubmit, onChange }) => {
                 className="btn-block mt-5"
                 color="dark"
                 onClick={toggle}
+                disabled={isDisabled(fields.survey_name, errors.survey_name)}
               >
                 Add Survey
               </Button>
@@ -86,81 +131,28 @@ export default class Survey extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isModalOpen: false,
-      fields: {
-        survey_name: "",
-        question_name: ""
-      }
+      isModalOpen: false
     };
     // binding
     this.toggle = this.toggle.bind(this);
-    this.onAddSurveySubmit = this.onAddSurveySubmit.bind(this);
-    this.onChange = this.onChange.bind(this);
   }
 
   // ############################################################
+  // ############################################################
   // ################       event handlers       ################
   // ############################################################
-
+  // ############################################################
   toggle = () => {
     this.setState({ isModalOpen: !this.state.isModalOpen });
   };
 
-  onChange = event => {
-    const target = event.target;
-    const value = target.value;
-    const name = target.name;
-    this.setState({ fields: { ...this.state.fields, [name]: value } });
-  };
-
   // ############################################################
-  // ###############       Helper Functions       ###############
-  // ############################################################
-
-  /**
-   * @param {string} _url
-   * @param {string} _name
-   * @param {string} _userID
-   */
-  addSurvey = (_url, _name, _userID) => {
-    Axios.post(
-      baseUrl + _url,
-      {
-        surveyUser: {
-          id: _userID
-        },
-        name: _name
-      },
-      {
-        headers: {
-          Authorization: getJWT()
-        }
-      }
-    )
-      .then(res => {
-        // console.log(res);
-      })
-      .catch(error => {
-        console.log(error.response);
-      });
-  };
-
-  /**
-   * @param {{ preventDefault: () => void; }} event
-   */
-  onAddSurveySubmit = event => {
-    event.preventDefault();
-    // check for errors
-
-    // if no errors, submit
-    this.addSurvey("addSurvey", this.state.fields.survey_name, getUserId());
-  };
-
   // ############################################################
   // ####################       Render       ####################
   // ############################################################
-
+  // ############################################################
   render() {
+    const renderSurveys = _.map(this.props.surveys, renderTableRow);
     return (
       <Col className="col-sm-6 offset-sm-3 text-left">
         <div className="text-center mb-4">
@@ -170,8 +162,11 @@ export default class Survey extends Component {
           <AddSurveyModal
             isModalOpen={this.state.isModalOpen}
             toggle={this.toggle}
-            onSubmit={this.onAddSurveySubmit}
-            onChange={this.onChange}
+            onSubmit={this.props.onSubmit}
+            onChange={this.props.onChange}
+            onBlur={this.props.onBlur}
+            fields={this.props.fields}
+            errors={this.props.errors}
           />
         </div>
         <UncontrolledCollapse toggler="#table-toggler">
@@ -201,10 +196,7 @@ export default class Survey extends Component {
                 ></th>
               </tr>
             </thead>
-            <tbody>
-              <TableRow />
-              <TableRow />
-            </tbody>
+            <tbody>{renderSurveys}</tbody>
           </Table>
         </UncontrolledCollapse>
       </Col>
@@ -212,10 +204,31 @@ export default class Survey extends Component {
   }
 }
 
-// Prop Types
+// ############################################################
+// ############################################################
+// ##################       Prop Types       ##################
+// ############################################################
+// ############################################################
 AddSurveyModal.propTypes = {
   isModalOpen: PropTypes.bool.isRequired,
   toggle: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
-  onChange: PropTypes.func.isRequired
+  onChange: PropTypes.func.isRequired,
+  onBlur: PropTypes.func.isRequired,
+  fields: PropTypes.object.isRequired,
+  errors: PropTypes.object.isRequired
+};
+
+Survey.propTypes = {
+  onChange: PropTypes.func.isRequired,
+  onBlur: PropTypes.func.isRequired,
+  fields: PropTypes.object.isRequired,
+  errors: PropTypes.object.isRequired,
+  getSurveys: PropTypes.func.isRequired,
+  surveys: PropTypes.array.isRequired
+};
+
+TableRow.propTypes = {
+  survey_name: PropTypes.string.isRequired,
+  survey_count: PropTypes.number.isRequired
 };

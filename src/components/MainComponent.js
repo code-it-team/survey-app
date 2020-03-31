@@ -6,32 +6,43 @@ import React, { Component } from "react";
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
 import { baseUrl } from "../shared/baseUrl";
-import { getJWT } from "../shared/helperFunctions";
+import { maxLength, minLength } from "../shared/globals";
+import { getJWT, getUserId, isAuth } from "../shared/helperFunctions";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRouteComponent";
 import Footer from "./FooterComponent";
 import GeneralError from "./GeneralErrorComponent";
-import Home from "./HomeComponent";
 import Login from "./LoginComponent";
 import Signup from "./SignupComponent";
+import Survey from "./SurveyComponent";
 
 // Global Variables
 const INITIAL_STATE = {
   jwt: "",
-  fields: { id: 0, username: "", password: "", password_confirm: "" },
-  errors: {
+  fields: {
+    id: 0,
     username: "",
     password: "",
     password_confirm: "",
-    login: "",
-    signup: "",
-    survey: "",
-    survey_name: ""
+    survey_name: "",
+    question: "",
+    option: ""
+  },
+  errors: {
+    username: null,
+    password: null,
+    password_confirm: null,
+    login: null,
+    signup: null,
+    survey_name: null
   },
   surveys: [] // list of all surveys
 };
 
 class Main extends Component {
+  /**
+   * @param {any} props
+   */
   constructor(props) {
     super(props);
     this.state = INITIAL_STATE;
@@ -39,15 +50,30 @@ class Main extends Component {
     this.onChange = this.onChange.bind(this);
     this.onLoginSubmit = this.onLoginSubmit.bind(this);
     this.onSignupSubmit = this.onSignupSubmit.bind(this);
+    this.onAddSurveySubmit = this.onAddSurveySubmit.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.signupRedirect = this.signupRedirect.bind(this);
     this.loginRedirect = this.loginRedirect.bind(this);
   }
 
   // ############################################################
+  // ############################################################
+  // ##############       Life-cycle Methods       ##############
+  // ############################################################
+  // ############################################################
+  componentDidMount() {
+    // if the user has a valid token, get all his/her surveys
+    if (getJWT()) {
+      this.getSurveys(getUserId());
+    }
+  }
+
+  // ############################################################
+  // ############################################################
   // ################       event handlers       ################
   // ############################################################
-
+  // ############################################################
+  // <<<<<<<<<<<<<<<<<<<<       General       >>>>>>>>>>>>>>>>>>>
   /** Set state to input values
    * @param {{ target: object; }} event
    */
@@ -73,35 +99,47 @@ class Main extends Component {
    */
   onBlur = field => {
     // destructor
-    const { username, password, password_confirm } = this.state.fields;
+    const {
+      username,
+      password,
+      password_confirm,
+      survey_name
+    } = this.state.fields;
     // on Blur apply validations
+
+    // ===================      Username       ===================
     if (field === "username") {
-      if (username.length < 3)
+      if (username.length < minLength)
         this.setState({
           errors: {
             ...this.state.errors,
-            username: <p>Username should be >= 3 characters!</p>
+            username: <p>Username should be >= {minLength} characters!</p>
           }
         });
       else {
-        this.setState({ errors: { ...this.state.errors, username: "" } });
+        this.setState({ errors: { ...this.state.errors, username: null } });
       }
-    } else if (field === "password") {
-      if (password.length < 3)
+    }
+
+    // ===================      Password       ==================
+    else if (field === "password") {
+      if (password.length < minLength)
         this.setState({
           errors: {
             ...this.state.errors,
-            password: <p>Password should be >= 3 characters!</p>
+            password: <p>Password should be >= {minLength} characters!</p>
           }
         });
 
       // if no errors
-      if (password.length >= 3) {
+      if (password.length >= minLength) {
         this.setState({
-          errors: { ...this.state.errors, password: "" }
+          errors: { ...this.state.errors, password: null }
         });
       }
     }
+
+    // ================      Confirm Password       ===============
     // only for signup form
     else if (field === "password_confirm") {
       if (password_confirm !== password) {
@@ -113,26 +151,54 @@ class Main extends Component {
         });
       } else {
         this.setState({
-          errors: { ...this.state.errors, password_confirm: "" }
+          errors: { ...this.state.errors, password_confirm: null }
         });
+      }
+    }
+
+    // ===================      Survey Name       =================
+    else if (field === "survey_name") {
+      if (survey_name.length < minLength) {
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            survey_name: <p>Survey name should be >= {minLength} characters!</p>
+          }
+        });
+      }
+      else if (survey_name.length >= maxLength) {
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            survey_name: <p>Survey name should be less {maxLength} characters!</p>
+          }
+        });
+      }
+      // if no errors
+      else {
+        this.setState({ errors: { ...this.state.errors, survey_name: null } });
       }
     }
   };
 
+  // <<<<<<<<<<<<<<<<<<<<<       Login       >>>>>>>>>>>>>>>>>>>>
   /** When submit the form, Login with the passed credentials to obtain the `JWT`
    * @param {{ preventDefault: () => void; }} event
    */
   onLoginSubmit = event => {
     event.preventDefault();
-    // check if form is valid
+    // check for errors
     const errors = this.state.errors;
     const { username, password } = this.state.fields;
     if (
-      errors.username === "" &&
+      errors.username === null &&
       username !== "" &&
-      errors.password === "" &&
+      errors.password === null &&
       password !== ""
     ) {
+      // remove error messages if exist
+      this.setState({ errors: { ...this.state.errors, login: null } });
+
       this.login(
         baseUrl + "authenticate",
         this.state.fields.username,
@@ -151,21 +217,25 @@ class Main extends Component {
     }
   };
 
+  // <<<<<<<<<<<<<<<<<<<<       Signup       >>>>>>>>>>>>>>>>>>>>
+  /**
+   * @param {{ preventDefault: () => void; }} event
+   */
   onSignupSubmit = event => {
     event.preventDefault();
-    // check if form is valid
+    // check for errors
     const errors = this.state.errors;
     const { username, password, password_confirm } = this.state.fields;
     if (
-      errors.username === "" &&
+      errors.username === null &&
       username !== "" &&
-      errors.password === "" &&
+      errors.password === null &&
       password !== "" &&
-      errors.password_confirm === "" &&
+      errors.password_confirm === null &&
       password_confirm !== ""
     ) {
       // remove error messages if exist
-      this.setState({ errors: { ...this.state.errors, signup: "" } });
+      this.setState({ errors: { ...this.state.errors, signup: null } });
 
       this.signup(
         baseUrl + "signUp",
@@ -183,39 +253,41 @@ class Main extends Component {
     }
   };
 
-  // ############################################################
-  // ###############       Helper Functions       ###############
-  // ############################################################
+  // <<<<<<<<<<<<<<<<<<<<       Survey       >>>>>>>>>>>>>>>>>>>>
+  /**
+   * @param {{ preventDefault: () => void; }} event
+   */
+  onAddSurveySubmit = event => {
+    event.preventDefault();
+    // check for errors
+    const errors = this.state.errors;
+    const { survey_name } = this.state.fields;
+    // if no errors, submit
+    if (errors.survey_name === null && survey_name !== "") {
+      // remove error messages if exist
+      this.setState({ errors: { ...this.state.errors, survey_name: null } });
 
+      this.addSurvey(
+        baseUrl + "addSurvey",
+        this.state.fields.survey_name,
+        getUserId()
+      );
+    }
+    // * There is no need to handle errors as the submit button is disabled
+    // * when there is something wrong
+  };
+
+  // ############################################################
+  // ############################################################
+  // ####################       Actions       ###################
+  // ############################################################
+  // ############################################################
   // Reset the state to the initial values
   resetState = () => {
     this.setState(INITIAL_STATE);
   };
 
-  // callback function to get the surveys of a user by id
-  getSurveys = _id => {
-    Axios.get(baseUrl + "getSurveysByUser", {
-      headers: {
-        Authorization: getJWT()
-      },
-      params: {
-        id: _id
-      }
-    })
-      .then(res => {
-        // correct response
-        if (res.status === 200) {
-          console.log(res);
-          this.setState({ surveys: res.data.surveyDTOS });
-
-          // save to locale storage
-          localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
-        }
-      })
-      .catch(err => {
-        console.log(err.response);
-      });
-  };
+  // <<<<<<<<<<<<<<<<<<<<<       Login       >>>>>>>>>>>>>>>>>>>>
 
   /** The Login function
    * @param {string} _username
@@ -224,6 +296,9 @@ class Main extends Component {
    * @param {Function} getSurveys
    */
   login = (_url, _username, _password, getSurveys) => {
+    // reset state
+    this.resetState();
+
     Axios.post(_url, {
       username: _username,
       password: _password
@@ -258,13 +333,14 @@ class Main extends Component {
           this.setState({
             errors: {
               ...this.state.errors,
-              login: "username or password is not valid!"
+              login: <p>Username or Password is not valid!</p>
             }
           });
         }
       });
   };
 
+  // <<<<<<<<<<<<<<<<<<<<       Logout       >>>>>>>>>>>>>>>>>>>>
   /* Reset to the initial state, remove the token from the local 
    storage, and redirect to login page
   */
@@ -274,12 +350,16 @@ class Main extends Component {
     this.props.history.push(ROUTES.LOGIN);
   };
 
+  // <<<<<<<<<<<<<<<<<<<<<       Signup       >>>>>>>>>>>>>>>>>>>
   /**
    * @param {string} _url
    * @param {string} _username
    * @param {string} _password
    */
   signup = (_url, _username, _password) => {
+    // reset state
+    this.resetState();
+
     Axios.post(_url, {
       username: _username,
       password: _password,
@@ -315,10 +395,75 @@ class Main extends Component {
       });
   };
 
+  // <<<<<<<<<<<<<<<<<<<<       Survey       >>>>>>>>>>>>>>>>>>>>
+  // callback function to get the surveys of a user by id, save them to local storage
+  /**
+   * @param {any} _id
+   */
+  getSurveys = _id => {
+    Axios.get(baseUrl + "getSurveysByUser", {
+      headers: {
+        Authorization: getJWT()
+      },
+      params: {
+        id: _id
+      }
+    })
+      .then(res => {
+        // correct response
+        if (res.status === 200) {
+          // console.log(res);
+          
+          this.setState({ surveys: res.data.surveyDTOS });
+
+          // save to locale storage
+          localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
+        }
+      })
+      .catch(err => {
+        console.log(err.response);
+      });
+  };
+
+  /**
+   * @param {string} _url
+   * @param {string} _name
+   * @param {string} _userID
+   */
+  addSurvey = (_url, _name, _userID) => {
+    // reset state
+    this.resetState();
+
+    Axios.post(
+      _url,
+      {
+        surveyUser: {
+          id: _userID
+        },
+        name: _name
+      },
+      {
+        headers: {
+          Authorization: getJWT()
+        }
+      }
+    )
+      .then(res => {
+        // console.log(res);
+
+        // once a new survey added, fetch the surveys
+        this.getSurveys(getUserId());
+      })
+      .catch(error => {
+        console.log(error.response);
+      });
+  };
+
+  // ############################################################
   // ############################################################
   // ################       Pages Rendering       ###############
   // ############################################################
-
+  // ############################################################
   loginPage = () => {
     return (
       <Login
@@ -345,12 +490,25 @@ class Main extends Component {
     );
   };
 
-  homePage = () => {
-    return <Home />;
+  surveyPage = () => {
+    return (
+      <Survey
+        onChange={this.onChange}
+        onBlur={this.onBlur}
+        fields={this.state.fields}
+        errors={this.state.errors}
+        onSubmit={this.onAddSurveySubmit}
+        getSurveys={this.getSurveys}
+        surveys={this.state.surveys}
+      />
+    );
   };
 
   // ############################################################
-
+  // ############################################################
+  // ####################       Render       ###################
+  // ############################################################
+  // ############################################################
   render() {
     return (
       <Fade in delay={100} duration={700}>
@@ -358,9 +516,9 @@ class Main extends Component {
           <Switch>
             <AuthRoute
               exact
-              isAuthenticated={localStorage.getItem("jwt") ? true : false}
+              isAuthenticated={isAuth()}
               path={ROUTES.HOME}
-              component={this.homePage}
+              component={this.surveyPage}
               logout={this.logout}
             />
             <Route path={ROUTES.LOGIN} component={this.loginPage} />
