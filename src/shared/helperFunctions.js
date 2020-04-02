@@ -10,7 +10,7 @@ export const isAuth = () => (localStorage.getItem("jwt") ? true : false);
 export const getUserId = () => localStorage.getItem("id");
 
 // get the survey_name
-export const getSurveyName = () => localStorage.getItem("survey_name")
+export const getSurveyName = () => localStorage.getItem("survey_name");
 
 // get the surveys of a user by ID from local storage
-export const getSurveys = () => JSON.parse(localStorage.getItem("surveys"))
+export const getSurveys = () => JSON.parse(localStorage.getItem("surveys"));

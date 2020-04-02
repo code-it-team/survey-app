@@ -5,6 +5,7 @@ import React, { Component } from "react";
 // @ts-ignore
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
+import { Spinner } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
 import { maxLength, minLength } from "../shared/globals";
 import { getJWT, getUserId, isAuth } from "../shared/helperFunctions";
@@ -36,6 +37,7 @@ const INITIAL_STATE = {
     signup: null,
     survey_name: null
   },
+  spinner: <></>,
   surveys: [] // list of all surveys
 };
 
@@ -78,10 +80,24 @@ class Main extends Component {
    * @param {{ target: object; }} event
    */
   onChange = event => {
+    // reset error message
+    this.setState({
+      errors: { ...this.state.errors, login: null, signup: null }
+    });
+
     const target = event.target;
     const value = target.value;
     const name = target.name;
     this.setState({ fields: { ...this.state.fields, [name]: value } });
+  };
+
+  activateSpinner = () => {
+    // if any error exists do not load the spinner
+    this.setState({
+      spinner: (
+        <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
+      )
+    });
   };
 
   // Redirect to Signup page
@@ -113,7 +129,7 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            username: <p>Username should be >= {minLength} characters!</p>
+            username: <p>Username should be &ge; {minLength} characters!</p>
           }
         });
       else {
@@ -127,7 +143,7 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            password: <p>Password should be >= {minLength} characters!</p>
+            password: <p>Password should be &ge; {minLength} characters!</p>
           }
         });
 
@@ -162,15 +178,18 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            survey_name: <p>Survey name should be >= {minLength} characters!</p>
+            survey_name: (
+              <p>Survey name should be &ge; {minLength} characters!</p>
+            )
           }
         });
-      }
-      else if (survey_name.length >= maxLength) {
+      } else if (survey_name.length >= maxLength) {
         this.setState({
           errors: {
             ...this.state.errors,
-            survey_name: <p>Survey name should be less {maxLength} characters!</p>
+            survey_name: (
+              <p>Survey name should be &le; {maxLength} characters!</p>
+            )
           }
         });
       }
@@ -199,6 +218,9 @@ class Main extends Component {
       // remove error messages if exist
       this.setState({ errors: { ...this.state.errors, login: null } });
 
+      // activate spinner button
+      this.activateSpinner();
+
       this.login(
         baseUrl + "authenticate",
         this.state.fields.username,
@@ -212,7 +234,8 @@ class Main extends Component {
         errors: {
           ...this.state.errors,
           login: <p>Please fill in the form fields!</p>
-        }
+        },
+        spinner: <></>
       });
     }
   };
@@ -237,18 +260,22 @@ class Main extends Component {
       // remove error messages if exist
       this.setState({ errors: { ...this.state.errors, signup: null } });
 
+      // activate spinner button
+      this.activateSpinner();
+
       this.signup(
         baseUrl + "signUp",
         this.state.fields.username,
         this.state.fields.password
       );
     } else {
-      // handle clicking on submit button without filling all fields
+      // handle clicking on submit button without filling all fields, and deactivate spinner
       this.setState({
         errors: {
           ...this.state.errors,
           signup: <p>Please Fill in the form fields!</p>
-        }
+        },
+        spinner: <></>
       });
     }
   };
@@ -296,9 +323,6 @@ class Main extends Component {
    * @param {Function} getSurveys
    */
   login = (_url, _username, _password, getSurveys) => {
-    // reset state
-    this.resetState();
-
     Axios.post(_url, {
       username: _username,
       password: _password
@@ -322,6 +346,9 @@ class Main extends Component {
       })
       .catch(error => {
         console.log(error.response);
+
+        // deactivate spinner
+        this.setState({ spinner: <></> });
 
         // handle general error
         if (!error.response) {
@@ -357,9 +384,6 @@ class Main extends Component {
    * @param {string} _password
    */
   signup = (_url, _username, _password) => {
-    // reset state
-    this.resetState();
-
     Axios.post(_url, {
       username: _username,
       password: _password,
@@ -373,10 +397,16 @@ class Main extends Component {
         // fill in the credentials
         if (res.status === 200) {
           this.props.history.push(ROUTES.LOGIN);
+
+          // deactivate spinner
+          this.setState({ spinner: <></> });
         }
       })
       .catch(error => {
         console.log(error.response);
+
+        // deactivate spinner
+        this.setState({ spinner: <></> });
 
         // handle general error
         if (!error.response) {
@@ -413,7 +443,7 @@ class Main extends Component {
         // correct response
         if (res.status === 200) {
           // console.log(res);
-          
+
           this.setState({ surveys: res.data.surveyDTOS });
 
           // save to locale storage
@@ -473,6 +503,7 @@ class Main extends Component {
         fields={this.state.fields}
         errors={this.state.errors}
         signupOnClick={this.signupRedirect}
+        spinner={this.state.spinner}
       />
     );
   };
@@ -486,6 +517,7 @@ class Main extends Component {
         fields={this.state.fields}
         errors={this.state.errors}
         loginOnClick={this.loginRedirect}
+        spinner={this.state.spinner}
       />
     );
   };

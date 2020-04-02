@@ -5,7 +5,15 @@ import React from "react";
 import { Button, Card, CardBody, CardHeader, Form, FormFeedback, FormGroup, Input, Label, Media } from "reactstrap";
 import "../index.css";
 
-function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
+function Signup({
+  onSubmit,
+  onChange,
+  onBlur,
+  fields,
+  errors,
+  loginOnClick,
+  spinner
+}) {
   return (
     <div className="signupBody">
       <div className="container">
@@ -86,7 +94,7 @@ function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
                       className="btn-block mt-5"
                       color="dark"
                     >
-                      Signup
+                      {spinner} Signup
                     </Button>
                     <div className="mt-2 text-danger">{errors.signup}</div>
                   </FormGroup>
@@ -101,7 +109,7 @@ function Signup({ onSubmit, onChange, onBlur, fields, errors, loginOnClick }) {
                 outline
                 color="dark"
                 className="mt-3 btn-block"
-                onClick={() => loginOnClick()}
+                onClick={loginOnClick}
               >
                 Login
               </Button>
@@ -122,5 +130,6 @@ Signup.propTypes = {
   onBlur: PropTypes.func.isRequired,
   fields: PropTypes.object.isRequired,
   errors: PropTypes.object.isRequired,
-  loginOnClick: PropTypes.func.isRequired
+  loginOnClick: PropTypes.func.isRequired,
+  spinner: PropTypes.object.isRequired
 };

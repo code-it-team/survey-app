@@ -16,7 +16,7 @@ import { maxLength, minLength } from "../shared/globals";
  * @param {number} survey_count
  */
 const renderTableRow = (survey_object, survey_count) => {
-  const {name} = survey_object
+  const { name } = survey_object;
   return (
     <TableRow
       survey_name={name}
@@ -31,10 +31,16 @@ const renderTableRow = (survey_object, survey_count) => {
  * @param {object} error
  */
 const isDisabled = (field, error) => {
-  if (!error && field.length >= minLength && field.length <= maxLength) return false;
+  if (!error && field.length >= minLength && field.length <= maxLength)
+    return false;
   return true;
 };
 
+// ############################################################
+// ############################################################
+// ##############       Helper Components       ###############
+// ############################################################
+// ############################################################
 const TableRow = (
   /**
    * @param {string} survey_name
@@ -44,20 +50,21 @@ const TableRow = (
 ) => {
   return (
     <tr>
-      <th scope="row">{survey_count+1}</th>
+      <th scope="row">{survey_count + 1}</th>
       <td>
         <a href="/">{survey_name}</a>
+      </td>
+
+      <td>
+        <i className="fa fa-pencil-square-o" id="edit-survey"></i>
+        <UncontrolledTooltip placeholder="top" target="edit-survey">
+          edit the survey's name
+        </UncontrolledTooltip>
       </td>
       <td>
         <i className="fa fa-trash-o" id="delete-survey"></i>
         <UncontrolledTooltip placeholder="top" target="delete-survey">
           delete the survey
-        </UncontrolledTooltip>
-      </td>
-      <td>
-        <i className="fa fa-pencil-square-o" id="edit-survey"></i>
-        <UncontrolledTooltip placeholder="top" target="edit-survey">
-          edit the name
         </UncontrolledTooltip>
       </td>
     </tr>

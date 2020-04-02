@@ -6,6 +6,7 @@ import { Redirect, Route } from "react-router-dom";
 import { Container, Row } from "reactstrap";
 import * as Routes from "../shared/routes";
 import Header from "./HeaderComponent";
+
 export default function AuthRoute({
   component: Component,
   isAuthenticated,
