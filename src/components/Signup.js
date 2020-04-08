@@ -2,7 +2,18 @@
 
 import PropTypes from "prop-types";
 import React from "react";
-import { Button, Card, CardBody, CardHeader, Form, FormFeedback, FormGroup, Input, Label, Media } from "reactstrap";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Form,
+  FormFeedback,
+  FormGroup,
+  Input,
+  Label,
+  Media,
+} from "reactstrap";
 import "../index.css";
 
 function Signup({
@@ -12,7 +23,7 @@ function Signup({
   fields,
   errors,
   loginOnClick,
-  spinner
+  spinner,
 }) {
   return (
     <div className="signupBody">
@@ -123,7 +134,11 @@ function Signup({
 
 export default Signup;
 
-// prop types
+// ############################################################
+// ############################################################
+// ##################       Prop Types       ##################
+// ############################################################
+// ############################################################
 Signup.propTypes = {
   onSubmit: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
@@ -131,5 +146,5 @@ Signup.propTypes = {
   fields: PropTypes.object.isRequired,
   errors: PropTypes.object.isRequired,
   loginOnClick: PropTypes.func.isRequired,
-  spinner: PropTypes.object.isRequired
+  spinner: PropTypes.object.isRequired,
 };

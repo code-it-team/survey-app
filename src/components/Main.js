@@ -7,15 +7,15 @@ import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
 import { Spinner } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
-import { maxLength, minLength } from "../shared/globals";
+import { MAXLEN, MINLEN } from "../shared/globals";
 import { getJWT, getUserId, isAuth } from "../shared/helperFunctions";
 import * as ROUTES from "../shared/routes";
-import AuthRoute from "./AuthRouteComponent";
-import Footer from "./FooterComponent";
-import GeneralError from "./GeneralErrorComponent";
-import Login from "./LoginComponent";
-import Signup from "./SignupComponent";
-import Survey from "./SurveyComponent";
+import AuthRoute from "./AuthRoute";
+import Footer from "./Footer";
+import GeneralError from "./GeneralError";
+import Login from "./Login";
+import Signup from "./Signup";
+import { default as Survey } from "./Survey";
 
 // Global Variables
 const INITIAL_STATE = {
@@ -27,7 +27,7 @@ const INITIAL_STATE = {
     password_confirm: "",
     survey_name: "",
     question: "",
-    option: ""
+    option: "",
   },
   errors: {
     username: null,
@@ -35,10 +35,11 @@ const INITIAL_STATE = {
     password_confirm: null,
     login: null,
     signup: null,
-    survey_name: null
+    survey_name: null,
+    question: null,
   },
   spinner: <></>,
-  surveys: [] // list of all surveys
+  surveys: [], // list of all surveys
 };
 
 class Main extends Component {
@@ -79,10 +80,10 @@ class Main extends Component {
   /** Set state to input values
    * @param {{ target: object; }} event
    */
-  onChange = event => {
+  onChange = (event) => {
     // reset error message
     this.setState({
-      errors: { ...this.state.errors, login: null, signup: null }
+      errors: { ...this.state.errors, login: null, signup: null },
     });
 
     const target = event.target;
@@ -96,7 +97,7 @@ class Main extends Component {
     this.setState({
       spinner: (
         <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
-      )
+      ),
     });
   };
 
@@ -113,24 +114,24 @@ class Main extends Component {
   /** Validate input rules on blur
    * @param {object} field
    */
-  onBlur = field => {
+  onBlur = (field) => {
     // destructor
     const {
       username,
       password,
       password_confirm,
-      survey_name
+      survey_name,
     } = this.state.fields;
     // on Blur apply validations
 
     // ===================      Username       ===================
     if (field === "username") {
-      if (username.length < minLength)
+      if (username.length < MINLEN)
         this.setState({
           errors: {
             ...this.state.errors,
-            username: <p>Username should be &ge; {minLength} characters!</p>
-          }
+            username: <p>Username should be &ge; {MINLEN} characters!</p>,
+          },
         });
       else {
         this.setState({ errors: { ...this.state.errors, username: null } });
@@ -139,18 +140,18 @@ class Main extends Component {
 
     // ===================      Password       ==================
     else if (field === "password") {
-      if (password.length < minLength)
+      if (password.length < MINLEN)
         this.setState({
           errors: {
             ...this.state.errors,
-            password: <p>Password should be &ge; {minLength} characters!</p>
-          }
+            password: <p>Password should be &ge; {MINLEN} characters!</p>,
+          },
         });
 
       // if no errors
-      if (password.length >= minLength) {
+      if (password.length >= MINLEN) {
         this.setState({
-          errors: { ...this.state.errors, password: null }
+          errors: { ...this.state.errors, password: null },
         });
       }
     }
@@ -162,35 +163,35 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            password_confirm: <p>Please make sure your passwords match!</p>
-          }
+            password_confirm: <p>Please make sure your passwords match!</p>,
+          },
         });
       } else {
         this.setState({
-          errors: { ...this.state.errors, password_confirm: null }
+          errors: { ...this.state.errors, password_confirm: null },
         });
       }
     }
 
     // ===================      Survey Name       =================
     else if (field === "survey_name") {
-      if (survey_name.length < minLength) {
+      if (survey_name.length < MINLEN) {
         this.setState({
           errors: {
             ...this.state.errors,
             survey_name: (
-              <p>Survey name should be &ge; {minLength} characters!</p>
-            )
-          }
+              <p>Survey name should be &ge; {MINLEN} characters!</p>
+            ),
+          },
         });
-      } else if (survey_name.length >= maxLength) {
+      } else if (survey_name.length >= MAXLEN) {
         this.setState({
           errors: {
             ...this.state.errors,
             survey_name: (
-              <p>Survey name should be &le; {maxLength} characters!</p>
-            )
-          }
+              <p>Survey name should be &le; {MAXLEN} characters!</p>
+            ),
+          },
         });
       }
       // if no errors
@@ -204,7 +205,7 @@ class Main extends Component {
   /** When submit the form, Login with the passed credentials to obtain the `JWT`
    * @param {{ preventDefault: () => void; }} event
    */
-  onLoginSubmit = event => {
+  onLoginSubmit = (event) => {
     event.preventDefault();
     // check for errors
     const errors = this.state.errors;
@@ -233,9 +234,9 @@ class Main extends Component {
       this.setState({
         errors: {
           ...this.state.errors,
-          login: <p>Please fill in the form fields!</p>
+          login: <p>Please fill in the form fields!</p>,
         },
-        spinner: <></>
+        spinner: <></>,
       });
     }
   };
@@ -244,7 +245,7 @@ class Main extends Component {
   /**
    * @param {{ preventDefault: () => void; }} event
    */
-  onSignupSubmit = event => {
+  onSignupSubmit = (event) => {
     event.preventDefault();
     // check for errors
     const errors = this.state.errors;
@@ -273,9 +274,9 @@ class Main extends Component {
       this.setState({
         errors: {
           ...this.state.errors,
-          signup: <p>Please Fill in the form fields!</p>
+          signup: <p>Please Fill in the form fields!</p>,
         },
-        spinner: <></>
+        spinner: <></>,
       });
     }
   };
@@ -284,7 +285,7 @@ class Main extends Component {
   /**
    * @param {{ preventDefault: () => void; }} event
    */
-  onAddSurveySubmit = event => {
+  onAddSurveySubmit = (event) => {
     event.preventDefault();
     // check for errors
     const errors = this.state.errors;
@@ -325,15 +326,15 @@ class Main extends Component {
   login = (_url, _username, _password, getSurveys) => {
     Axios.post(_url, {
       username: _username,
-      password: _password
+      password: _password,
     })
-      .then(res => {
+      .then((res) => {
         // if correct response
         if (res.status === 200) {
           // console.log(res);
           this.setState({
             jwt: res.data.jwt,
-            fields: { ...this.state.fields, id: res.data.surveyUserDTO.id }
+            fields: { ...this.state.fields, id: res.data.surveyUserDTO.id },
           });
           localStorage.setItem("jwt", res.data.jwt);
           localStorage.setItem("username", this.state.fields.username);
@@ -344,7 +345,7 @@ class Main extends Component {
           getSurveys(localStorage.getItem("id"));
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.log(error.response);
 
         // deactivate spinner
@@ -360,8 +361,8 @@ class Main extends Component {
           this.setState({
             errors: {
               ...this.state.errors,
-              login: <p>Username or Password is not valid!</p>
-            }
+              login: <p>Username or Password is not valid!</p>,
+            },
           });
         }
       });
@@ -388,10 +389,10 @@ class Main extends Component {
       username: _username,
       password: _password,
       authority: {
-        role: "ROLE_USER"
-      }
+        role: "ROLE_USER",
+      },
     })
-      .then(res => {
+      .then((res) => {
         // console.log(res);
         // if user added successfully, redirect to login page and
         // fill in the credentials
@@ -402,7 +403,7 @@ class Main extends Component {
           this.setState({ spinner: <></> });
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.log(error.response);
 
         // deactivate spinner
@@ -418,8 +419,8 @@ class Main extends Component {
           this.setState({
             errors: {
               ...this.state.errors,
-              signup: <p>Username already exists!</p>
-            }
+              signup: <p>Username already exists!</p>,
+            },
           });
         }
       });
@@ -430,16 +431,16 @@ class Main extends Component {
   /**
    * @param {any} _id
    */
-  getSurveys = _id => {
+  getSurveys = (_id) => {
     Axios.get(baseUrl + "getSurveysByUser", {
       headers: {
-        Authorization: getJWT()
+        Authorization: getJWT(),
       },
       params: {
-        id: _id
-      }
+        id: _id,
+      },
     })
-      .then(res => {
+      .then((res) => {
         // correct response
         if (res.status === 200) {
           // console.log(res);
@@ -450,42 +451,8 @@ class Main extends Component {
           localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.log(err.response);
-      });
-  };
-
-  /**
-   * @param {string} _url
-   * @param {string} _name
-   * @param {string} _userID
-   */
-  addSurvey = (_url, _name, _userID) => {
-    // reset state
-    this.resetState();
-
-    Axios.post(
-      _url,
-      {
-        surveyUser: {
-          id: _userID
-        },
-        name: _name
-      },
-      {
-        headers: {
-          Authorization: getJWT()
-        }
-      }
-    )
-      .then(res => {
-        // console.log(res);
-
-        // once a new survey added, fetch the surveys
-        this.getSurveys(getUserId());
-      })
-      .catch(error => {
-        console.log(error.response);
       });
   };
 
@@ -497,9 +464,9 @@ class Main extends Component {
   loginPage = () => {
     return (
       <Login
-        onSubmit={event => this.onLoginSubmit(event)}
-        onChange={event => this.onChange(event)}
-        onBlur={field => this.onBlur(field)}
+        onSubmit={(event) => this.onLoginSubmit(event)}
+        onChange={(event) => this.onChange(event)}
+        onBlur={(field) => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
         signupOnClick={this.signupRedirect}
@@ -511,9 +478,9 @@ class Main extends Component {
   signupPage = () => {
     return (
       <Signup
-        onSubmit={event => this.onSignupSubmit(event)}
-        onChange={event => this.onChange(event)}
-        onBlur={field => this.onBlur(field)}
+        onSubmit={(event) => this.onSignupSubmit(event)}
+        onChange={(event) => this.onChange(event)}
+        onBlur={(field) => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
         loginOnClick={this.loginRedirect}
@@ -523,22 +490,12 @@ class Main extends Component {
   };
 
   surveyPage = () => {
-    return (
-      <Survey
-        onChange={this.onChange}
-        onBlur={this.onBlur}
-        fields={this.state.fields}
-        errors={this.state.errors}
-        onSubmit={this.onAddSurveySubmit}
-        getSurveys={this.getSurveys}
-        surveys={this.state.surveys}
-      />
-    );
+    return <Survey getSurveys={this.getSurveys} surveys={this.state.surveys} />;
   };
 
   // ############################################################
   // ############################################################
-  // ####################       Render       ###################
+  // ####################       Render       ####################
   // ############################################################
   // ############################################################
   render() {

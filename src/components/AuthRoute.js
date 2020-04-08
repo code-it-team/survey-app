@@ -4,8 +4,8 @@ import PropTypes from "prop-types";
 import React from "react";
 import { Redirect, Route } from "react-router-dom";
 import { Container, Row } from "reactstrap";
-import * as Routes from "../shared/routes";
-import Header from "./HeaderComponent";
+import * as ROUTES from "../shared/routes";
+import Header from "./Header";
 
 export default function AuthRoute({
   component: Component,
@@ -25,7 +25,7 @@ export default function AuthRoute({
             </Row>
           </Container>
         ) : (
-          <Redirect to={Routes.LOGIN} />
+          <Redirect to={ROUTES.LOGIN} />
         )
       }
     />
@@ -34,8 +34,8 @@ export default function AuthRoute({
 
 // Prop types
 AuthRoute.propTypes = {
-  Component: PropTypes.element,
+  component: PropTypes.func.isRequired,
   isAuthenticated: PropTypes.bool.isRequired,
   logout: PropTypes.func.isRequired,
-  path: PropTypes.string.isRequired
+  path: PropTypes.string.isRequired,
 };

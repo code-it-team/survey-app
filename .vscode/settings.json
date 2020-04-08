@@ -1,7 +1,10 @@
 {
   "cSpell.words": [
+    "DTOS",
     "Jalil",
-    "fontawesome"
+    "fontawesome",
+    "parens",
+    "readonly"
   ],
   "emmet.syntaxProfiles": {
     "javascript": "jsx",
