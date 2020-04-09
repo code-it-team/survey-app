@@ -1,29 +1,10 @@
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
-import {
-  Button,
-  Col,
-  Collapse,
-  Form,
-  FormFeedback,
-  FormGroup,
-  Input,
-  Label,
-  Table,
-  UncontrolledTooltip,
-} from "reactstrap";
-import {
-  INITIAL_QUESTION,
-  MAXLEN,
-  MINLEN,
-  QUESTION_BTN_COLOR,
-  QUESTION_COLOR_TEXT,
-  SURVEY_ERRORS,
-  MAX_CHOICES,
-  INITIAL_CHOICE,
-  MIN_CHOICES,
-} from "../shared/globals";
+import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Table, UncontrolledTooltip } from "reactstrap";
+import * as ERRORS from "../shared/errors";
+import { INITIAL_CHOICE, INITIAL_QUESTION, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_BTN_COLOR, QUESTION_COLOR_TEXT } from "../shared/globals";
+import * as VALIDATION from "../shared/validation";
 import Question from "./Question";
 import { TableRow } from "./TableRow";
 
@@ -73,13 +54,15 @@ export default class Survey extends Component {
       isAddSurveyOpen: false,
       survey: {
         name: "Survey Name",
-        questions: INITIAL_QUESTION,
+        questions: [INITIAL_QUESTION],
       },
-      errors: SURVEY_ERRORS,
+      errors: ERRORS.SURVEY_ERRORS,
     };
     // binding
     this.showSurveysToggle = this.showSurveysToggle.bind(this);
     this.addSurveyToggle = this.addSurveyToggle.bind(this);
+    this.onChange = this.onChange.bind(this);
+    this.onBlur = this.onBlur.bind(this);
   }
 
   // ############################################################
@@ -104,15 +87,82 @@ export default class Survey extends Component {
 
   onSubmit = () => {};
 
-  onChange = field => {};
+  onChange = (event, field, question_id = -1, choice_id = -1) => {
+    const { value } = event.target;
 
-  onBlur = field => {};
+    if (field === VALIDATION.survey_name) {
+      // survey name
+      this.setState({
+        survey: { ...this.state.survey, name: value },
+      });
+    } else if (field === VALIDATION.question) {
+      // question body
+      let updatedQuestions = [...this.state.survey.questions];
+      updatedQuestions[question_id] = {
+        ...updatedQuestions[question_id],
+        body: value,
+      };
+      this.setState({
+        survey: {
+          ...this.state.survey,
+          questions: updatedQuestions,
+        },
+      });
+    }
+  };
+
+  onBlur = field => {
+    // if survey name
+    if (field === VALIDATION.survey_name) {
+      const { name } = this.state.survey;
+      // check valid length
+      if (name.length < VALIDATION.len.name.min) {
+        // less than min length
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            name: (
+              <p>
+                Survey Name should be &ge; {VALIDATION.len.name.min} characters!
+              </p>
+            ),
+          },
+        });
+      } else if (name.length > VALIDATION.len.name.max) {
+        // greater than max length
+        this.setState({
+          errors: {
+            ...this.state.errors,
+            name: (
+              <p>
+                Survey Name should be &le; {VALIDATION.len.name.max} characters!
+              </p>
+            ),
+          },
+        });
+      } else {
+        // valid name length
+        this.setState({ errors: { ...this.state.errors, name: null } });
+      }
+    }
+  };
 
   addQuestion = () => {
+    // survey object
     this.setState({
       survey: {
         ...this.state.survey,
         questions: [...this.state.survey.questions].concat(INITIAL_QUESTION),
+      },
+    });
+
+    // update errors to track survey fields
+    this.setState({
+      errors: {
+        ...this.state.errors,
+        questions: [...this.state.errors.questions].concat(
+          ERRORS.QUESTION_ERROR
+        ),
       },
     });
   };
@@ -127,6 +177,19 @@ export default class Survey extends Component {
           questions: [
             ..._.filter(questions, (question, index) => {
               return index === questions.length - 1 ? false : true;
+            }),
+          ],
+        },
+      });
+
+      // update errors to track survey fields
+      const { errors } = this.state;
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          questions: [
+            ..._.filter(errors.questions, (question_error, index) => {
+              return index === errors.questions.length - 1 ? false : true;
             }),
           ],
         },
@@ -271,9 +334,9 @@ export default class Survey extends Component {
                 id="survey-name"
                 placeholder={this.state.survey.name}
                 value={this.state.survey.name}
-                onChange={this.onChange}
-                onBlur={this.onBlur}
-                invalid={this.state.errors.name}
+                onChange={event => this.onChange(event, VALIDATION.survey_name)}
+                onBlur={() => this.onBlur(VALIDATION.survey_name)}
+                invalid={this.state.errors.name !== null}
               />
               <FormFeedback>{this.state.errors.name}</FormFeedback>
             </FormGroup>
@@ -288,7 +351,9 @@ export default class Survey extends Component {
                     key={index}
                     id={index}
                     onBlur={this.onBlur}
-                    onChange={this.onChange}
+                    onChange={event =>
+                      this.onChange(event, VALIDATION.question, index)
+                    }
                     addChoice={this.addChoice}
                     removeChoice={this.removeChoice}
                   />

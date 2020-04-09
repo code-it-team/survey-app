@@ -9,14 +9,11 @@ export const CHOICE_BTN_COLOR = "info";
 export const INITIAL_CHOICE = {
   body: "Choice",
 };
-export const INITIAL_QUESTION = [
-  {
-    body: "Question",
-    choices: [INITIAL_CHOICE, INITIAL_CHOICE],
-  },
-];
-export const SURVEY_ERRORS = {
-  name: null,
+export const INITIAL_QUESTION = {
+  body: "Question",
+  choices: [INITIAL_CHOICE, INITIAL_CHOICE],
 };
+
 export const MIN_CHOICES = 2;
 export const MAX_CHOICES = 8;
+

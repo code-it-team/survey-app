@@ -1,18 +1,8 @@
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React from "react";
-import {
-  Button,
-  FormGroup,
-  Input,
-  Label,
-  UncontrolledTooltip,
-} from "reactstrap";
-import {
-  CHOICE_BTN_COLOR,
-  CHOICE_COLOR_TEXT,
-  QUESTION_COLOR_TEXT,
-} from "../shared/globals";
+import { Button, FormFeedback, FormGroup, Input, Label, UncontrolledTooltip } from "reactstrap";
+import { CHOICE_BTN_COLOR, CHOICE_COLOR_TEXT, QUESTION_COLOR_TEXT } from "../shared/globals";
 
 export default function Question({
   question,
@@ -24,6 +14,7 @@ export default function Question({
   removeChoice,
   addQuestion,
   removeQuestion,
+  errors
 }) {
   return (
     <li>
@@ -38,6 +29,9 @@ export default function Question({
           onSubmit={onSubmit}
           onBlur={onBlur}
         />
+        <FormFeedback>{errors}</FormFeedback>
+      </FormGroup>
+      <FormGroup>
         <Label className={`font-weight-bold ${CHOICE_COLOR_TEXT}`}>
           Choices
         </Label>
