@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Table, UncontrolledTooltip } from "reactstrap";
 import * as ERRORS from "../shared/errors";
-import { INITIAL_CHOICE, INITIAL_QUESTION, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_BTN_COLOR, QUESTION_COLOR_TEXT } from "../shared/globals";
+import { INITIAL_CHOICE, INITIAL_QUESTION, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as VALIDATION from "../shared/validation";
 import Question from "./Question";
 import { TableRow } from "./TableRow";
@@ -87,6 +87,12 @@ export default class Survey extends Component {
 
   onSubmit = () => {};
 
+  /**
+   * @param {Event} event
+   * @param {string} field The input type question, choice
+   * @param {number} question_id The id of the question being updated
+   * @param {number} choice_id The id of the choice being updated
+   */
   onChange = (event, field, question_id = -1, choice_id = -1) => {
     const { value } = event.target;
 
@@ -102,6 +108,19 @@ export default class Survey extends Component {
         ...updatedQuestions[question_id],
         body: value,
       };
+      this.setState({
+        survey: {
+          ...this.state.survey,
+          questions: updatedQuestions,
+        },
+      });
+    } else if (field === VALIDATION.choice) {
+      // choice body
+      let updatedQuestions = [...this.state.survey.questions];
+      updatedQuestions[question_id].choices[choice_id] = {
+        body: value,
+      };
+      console.log(updatedQuestions)
       this.setState({
         survey: {
           ...this.state.survey,
@@ -147,12 +166,18 @@ export default class Survey extends Component {
     }
   };
 
-  addQuestion = () => {
-    // survey object
+  /**
+   * @param {number} question_id The clicked question's id
+   */
+  addQuestion = question_id => {
+    // Insert the question in the index next to the passed question id
+    const updatedQuestions = [...this.state.survey.questions];
+    updatedQuestions.splice(question_id + 1, 0, INITIAL_QUESTION);
+
     this.setState({
       survey: {
         ...this.state.survey,
-        questions: [...this.state.survey.questions].concat(INITIAL_QUESTION),
+        questions: updatedQuestions,
       },
     });
 
@@ -167,7 +192,10 @@ export default class Survey extends Component {
     });
   };
 
-  removeQuestion = () => {
+  /**
+   * @param {number} question_id The clicked question's id
+   */
+  removeQuestion = question_id => {
     // Remove the last question only if at least a single question exists
     const { questions } = this.state.survey;
     if (questions.length > 1) {
@@ -176,7 +204,7 @@ export default class Survey extends Component {
           ...this.state.survey,
           questions: [
             ..._.filter(questions, (question, index) => {
-              return index === questions.length - 1 ? false : true;
+              return index === question_id ? false : true;
             }),
           ],
         },
@@ -197,7 +225,11 @@ export default class Survey extends Component {
     }
   };
 
-  addChoice = question_id => {
+  /**
+   * @param {number} question_id The clicked question's id
+   * @param {number} choice_id The choice before the one to be added
+   */
+  addChoice = (question_id, choice_id) => {
     // check that the # of choices is in the valid range 2 => 8
     const { questions } = this.state.survey;
     const updatedQuestions = _.map(questions, (question, index) => {
@@ -205,9 +237,11 @@ export default class Survey extends Component {
         // for this question of this id, add one more options if valid
         if (question.choices.length < MAX_CHOICES) {
           // if # of choices is less than 8, add one more
+          const updatedChoices = [...question.choices];
+          updatedChoices.splice(choice_id + 1, 0, INITIAL_CHOICE);
           return {
             ...question,
-            choices: [...question.choices].concat(INITIAL_CHOICE),
+            choices: updatedChoices,
           };
         } else {
           // if cannot add more choices
@@ -223,7 +257,7 @@ export default class Survey extends Component {
     });
   };
 
-  removeChoice = question_id => {
+  removeChoice = (question_id, choice_id) => {
     // check that the # of choices is in the valid range 2 => 8
     const { questions } = this.state.survey;
     const updatedQuestions = _.map(questions, (question, index) => {
@@ -235,7 +269,7 @@ export default class Survey extends Component {
           return {
             ...question,
             choices: _.filter(choices, (choice, index) =>
-              index === choices.length - 1 ? false : true
+              index === choice_id ? false : true
             ),
           };
         } else {
@@ -326,7 +360,7 @@ export default class Survey extends Component {
           <Form name="addSurveyForm" onSubmit={this.onSubmit}>
             <FormGroup>
               <Label htmlFor="survey-name" className="font-weight-bold">
-                Survey Name
+                SURVEY NAME
               </Label>
               <Input
                 type="text"
@@ -342,7 +376,7 @@ export default class Survey extends Component {
             </FormGroup>
             <div className="mt-4">
               <Label className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}>
-                Questions:
+                QUESTIONS:
               </Label>
               <ol>
                 {_.map(this.state.survey.questions, (question, index) => (
@@ -351,46 +385,14 @@ export default class Survey extends Component {
                     key={index}
                     id={index}
                     onBlur={this.onBlur}
-                    onChange={event =>
-                      this.onChange(event, VALIDATION.question, index)
-                    }
+                    onChange={this.onChange}
                     addChoice={this.addChoice}
                     removeChoice={this.removeChoice}
+                    addQuestion={this.addQuestion}
+                    removeQuestion={this.removeQuestion}
+                    errors={this.state.errors}
                   />
                 ))}
-                {/* <<<<<<<<<<<<<<<<<<<<<       Options for Questions       >>>>>>>>>>>>>>>>>>>> */}
-                <div className="mt-4">
-                  <Button
-                    outline
-                    className="m-1 btn-circular"
-                    color={`${QUESTION_BTN_COLOR}`}
-                    onClick={() => this.removeQuestion()}
-                    id="remove-question"
-                  >
-                    <i className="fa fa-minus fa-center"></i>
-                    <UncontrolledTooltip
-                      placeholder="top"
-                      target="remove-question"
-                    >
-                      Remove Last Question
-                    </UncontrolledTooltip>
-                  </Button>
-                  <Button
-                    outline
-                    className="m-1 btn-circular"
-                    color={`${QUESTION_BTN_COLOR}`}
-                    onClick={() => this.addQuestion()}
-                    id="add-question"
-                  >
-                    <i className="fa fa-plus fa-center"></i>
-                    <UncontrolledTooltip
-                      placeholder="top"
-                      target="add-question"
-                    >
-                      Add New Question
-                    </UncontrolledTooltip>
-                  </Button>
-                </div>
               </ol>
             </div>
 
