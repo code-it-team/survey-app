@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Table, UncontrolledTooltip } from "reactstrap";
 import * as ERRORS from "../shared/errors";
-import { INITIAL_CHOICE, INITIAL_QUESTION, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
+import { INITIAL_SURVEY, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as VALIDATION from "../shared/validation";
 import Question from "./Question";
 import { TableRow } from "./TableRow";
@@ -52,10 +52,7 @@ export default class Survey extends Component {
     this.state = {
       isShowSurveysOpen: false,
       isAddSurveyOpen: false,
-      survey: {
-        name: "Survey Name",
-        questions: [INITIAL_QUESTION],
-      },
+      survey: INITIAL_SURVEY,
       errors: ERRORS.SURVEY_ERRORS,
     };
     // binding
@@ -115,12 +112,11 @@ export default class Survey extends Component {
         },
       });
     } else if (field === VALIDATION.choice) {
-      // choice body
       let updatedQuestions = [...this.state.survey.questions];
-      updatedQuestions[question_id].choices[choice_id] = {
+      // choice body
+      updatedQuestions[question_id]["choices"][choice_id] = {
         body: value,
       };
-      console.log(updatedQuestions)
       this.setState({
         survey: {
           ...this.state.survey,
@@ -172,7 +168,10 @@ export default class Survey extends Component {
   addQuestion = question_id => {
     // Insert the question in the index next to the passed question id
     const updatedQuestions = [...this.state.survey.questions];
-    updatedQuestions.splice(question_id + 1, 0, INITIAL_QUESTION);
+    updatedQuestions.splice(question_id + 1, 0, {
+      body: "Question",
+      choices: [{ body: "Choice" }, { body: "Choice" }],
+    });
 
     this.setState({
       survey: {
@@ -238,7 +237,7 @@ export default class Survey extends Component {
         if (question.choices.length < MAX_CHOICES) {
           // if # of choices is less than 8, add one more
           const updatedChoices = [...question.choices];
-          updatedChoices.splice(choice_id + 1, 0, INITIAL_CHOICE);
+          updatedChoices.splice(choice_id + 1, 0, { body: "choice" });
           return {
             ...question,
             choices: updatedChoices,
