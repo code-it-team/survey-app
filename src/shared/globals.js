@@ -7,7 +7,7 @@ export const QUESTION_BTN_COLOR = "success";
 export const CHOICE_COLOR_TEXT = "text-info";
 export const CHOICE_BTN_COLOR = "info";
 export const INITIAL_SURVEY = {
-  body: "Survey Name",
+  name: "Survey Name",
   questions: [
     {
       body: "Question",

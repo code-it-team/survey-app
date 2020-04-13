@@ -2,7 +2,6 @@ import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Table, UncontrolledTooltip } from "reactstrap";
-import * as ERRORS from "../shared/errors";
 import { INITIAL_SURVEY, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as VALIDATION from "../shared/validation";
 import Question from "./Question";
@@ -13,7 +12,15 @@ import { TableRow } from "./TableRow";
 // ###############       Global Variables       ###############
 // ############################################################
 // ############################################################
-
+const initial_errors = {
+  name: null,
+  questions: [
+    {
+      body: null,
+      choices: [{ body: null }, { body: null }],
+    },
+  ],
+};
 // ############################################################
 // ############################################################
 // ###############       Helper Functions       ###############
@@ -53,13 +60,19 @@ export default class Survey extends Component {
       isShowSurveysOpen: false,
       isAddSurveyOpen: false,
       survey: INITIAL_SURVEY,
-      errors: ERRORS.SURVEY_ERRORS,
+      errors: initial_errors,
     };
     // binding
     this.showSurveysToggle = this.showSurveysToggle.bind(this);
     this.addSurveyToggle = this.addSurveyToggle.bind(this);
+    this.onSubmit = this.onSubmit.bind(this);
     this.onChange = this.onChange.bind(this);
     this.onBlur = this.onBlur.bind(this);
+    this.addQuestion = this.addQuestion.bind(this);
+    this.removeQuestion = this.removeQuestion.bind(this);
+    this.addChoice = this.addChoice.bind(this);
+    this.removeChoice = this.removeChoice.bind(this);
+    this.setQuestionErrors = this.setQuestionErrors.bind(this);
   }
 
   // ############################################################
@@ -126,8 +139,13 @@ export default class Survey extends Component {
     }
   };
 
-  onBlur = field => {
-    // if survey name
+  /**
+   * @param {string} field The input type [question, choice]
+   * @param {number} question_id The id of the question being updated
+   * @param {number} choice_id The id of the choice being updated
+   */
+  onBlur = (field, question_id = -1, choice_id = -1) => {
+    // ###################      Survey Name     ###################
     if (field === VALIDATION.survey_name) {
       const { name } = this.state.survey;
       // check valid length
@@ -159,7 +177,81 @@ export default class Survey extends Component {
         // valid name length
         this.setState({ errors: { ...this.state.errors, name: null } });
       }
+    } else if (field === VALIDATION.question) {
+      // ###################    question body     ###################
+      const { body } = this.state.survey.questions[question_id];
+      let updatedQuestionErrors = [...this.state.errors.questions];
+      // check valid length
+      if (body.length < VALIDATION.len.question.min) {
+        // less than min length
+        updatedQuestionErrors[question_id] = {
+          ...this.state.errors.questions[question_id],
+          body: (
+            <p>
+              Question should be &ge; {VALIDATION.len.question.min} characters!
+            </p>
+          ),
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      } else if (body.length > VALIDATION.len.question.max) {
+        // greater than max length
+        updatedQuestionErrors[question_id] = {
+          ...this.state.errors.questions[question_id],
+          body: (
+            <p>
+              Question should be &le; {VALIDATION.len.question.max} characters!
+            </p>
+          ),
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      } else {
+        // valid name length
+        updatedQuestionErrors[question_id] = {
+          ...this.state.errors.questions[question_id],
+          body: null,
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      }
+    } else if (field === VALIDATION.choice) {
+      // ###################    choice body     ###################
+      const { body } = this.state.survey.questions[question_id].choices[
+        choice_id
+      ];
+      let updatedQuestionErrors = [...this.state.errors.questions];
+      // check valid length
+      if (body.length < VALIDATION.len.choice.min) {
+        // less than min length
+        updatedQuestionErrors[question_id].choices[choice_id] = {
+          body: (
+            <p>Choice should be &ge; {VALIDATION.len.choice.min} characters!</p>
+          ),
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      } else if (body.length > VALIDATION.len.choice.max) {
+        // greater than max length
+        updatedQuestionErrors[question_id].choices[choice_id] = {
+          body: (
+            <p>Choice should be &le; {VALIDATION.len.choice.max} characters!</p>
+          ),
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      } else {
+        // valid name length
+        updatedQuestionErrors[question_id].choices[choice_id] = {
+          body: null,
+        };
+        this.setQuestionErrors(updatedQuestionErrors);
+      }
     }
+  };
+
+  setQuestionErrors = updatedQuestionErrors => {
+    this.setState({
+      errors: {
+        ...this.state.errors,
+        questions: updatedQuestionErrors,
+      },
+    });
   };
 
   /**
@@ -180,15 +272,13 @@ export default class Survey extends Component {
       },
     });
 
-    // update errors to track survey fields
-    this.setState({
-      errors: {
-        ...this.state.errors,
-        questions: [...this.state.errors.questions].concat(
-          ERRORS.QUESTION_ERROR
-        ),
-      },
+    // update question errors to track survey fields
+    const updatedQuestionErrors = [...this.state.errors.questions];
+    updatedQuestionErrors.splice(question_id + 1, 0, {
+      body: null,
+      choices: [{ body: null }, { body: null }],
     });
+    this.setQuestionErrors(updatedQuestionErrors);
   };
 
   /**
@@ -201,11 +291,9 @@ export default class Survey extends Component {
       this.setState({
         survey: {
           ...this.state.survey,
-          questions: [
-            ..._.filter(questions, (question, index) => {
-              return index === question_id ? false : true;
-            }),
-          ],
+          questions: _.filter(questions, (question, index) =>
+            index === question_id ? false : true
+          ),
         },
       });
 
@@ -214,11 +302,9 @@ export default class Survey extends Component {
       this.setState({
         errors: {
           ...this.state.errors,
-          questions: [
-            ..._.filter(errors.questions, (question_error, index) => {
-              return index === errors.questions.length - 1 ? false : true;
-            }),
-          ],
+          questions: _.filter(errors.questions, (question_error, index) =>
+            index === question_id ? false : true
+          ),
         },
       });
     }
@@ -235,6 +321,22 @@ export default class Survey extends Component {
       if (index === question_id) {
         // for this question of this id, add one more options if valid
         if (question.choices.length < MAX_CHOICES) {
+          // update errors to track survey fields
+          const updatedQuestionErrors = [...this.state.errors.questions];
+          updatedQuestionErrors[question_id]["choices"].splice(
+            choice_id + 1,
+            0,
+            {
+              body: null,
+            }
+          );
+          this.setState({
+            errors: {
+              ...this.state.errors,
+              questions: updatedQuestionErrors,
+            },
+          });
+          
           // if # of choices is less than 8, add one more
           const updatedChoices = [...question.choices];
           updatedChoices.splice(choice_id + 1, 0, { body: "choice" });
@@ -264,6 +366,16 @@ export default class Survey extends Component {
         const { choices } = question;
         // for this question of this id, remove the last options if valid
         if (choices.length > MIN_CHOICES) {
+          // update errors to track survey fields
+          const { errors } = this.state;
+          let updatedQuestionErrors = [...errors.questions];
+          let { choices } = updatedQuestionErrors[question_id];
+          let updatedChoices = _.filter(choices, (choice, index) =>
+            index === choice_id ? false : true
+          );
+          updatedQuestionErrors[question_id].choices = updatedChoices;
+          this.setQuestionErrors(updatedQuestionErrors);
+
           // if # of choices is greater than 2, remove the last
           return {
             ...question,

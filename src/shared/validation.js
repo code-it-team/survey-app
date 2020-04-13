@@ -9,4 +9,12 @@ export const len = {
     min: 3,
     max: 50,
   },
+  question: {
+    min: 3,
+    max: 1000
+  },
+  choice: {
+    min: 3,
+    max: 200
+  }
 };
