@@ -34,7 +34,7 @@ export default function Question({
         />
         <FormFeedback>{errors.questions[id].body}</FormFeedback>
         {/* <<<<<<<<<<<<<<<<<<<<<       Options for Questions       >>>>>>>>>>>>>>>>>>>> */}
-        <div className="mt-1">
+        <div className="mt-2">
           <Button
             outline
             className="mr-2 btn-circular"
@@ -91,38 +91,41 @@ export default function Question({
                   <FormFeedback>
                     {errors.questions[id].choices[choice_id].body}
                   </FormFeedback>
-                  <Button
-                    outline
-                    className="mr-2 btn-sm btn-circular"
-                    color={`${CHOICE_BTN_COLOR}`}
-                    onClick={() => removeChoice(id, choice_id)}
-                    id="remove-choice"
-                  >
-                    <i className="fa fa-minus fa-center" id="remove-choice"></i>
-                    <UncontrolledTooltip
-                      placeholder="top"
-                      target="remove-choice"
+
+                  {/* <<<<<<<<<<<<<<<<<<<<<       Options for Choice       >>>>>>>>>>>>>>>>>>>> */}
+                  <div className="mt-2">
+                    <Button
+                      outline
+                      className="mr-2 btn-sm btn-circular"
+                      color={`${CHOICE_BTN_COLOR}`}
+                      onClick={() => removeChoice(id, choice_id)}
+                      id="remove-choice"
                     >
-                      Remove this choice
-                    </UncontrolledTooltip>
-                  </Button>
-                  <Button
-                    outline
-                    className="btn-sm btn-circular"
-                    color={`${CHOICE_BTN_COLOR}`}
-                    onClick={() => addChoice(id, choice_id)}
-                    id="add-choice"
-                  >
-                    <i className="fa fa-plus fa-center" id="add-choice"></i>
-                    <UncontrolledTooltip placeholder="top" target="add-choice">
-                      Add choice next to this
-                    </UncontrolledTooltip>
-                  </Button>
+                      <i className="fa fa-minus fa-center" id="remove-choice"></i>
+                      <UncontrolledTooltip
+                        placeholder="top"
+                        target="remove-choice"
+                      >
+                        Remove this choice
+                      </UncontrolledTooltip>
+                    </Button>
+                    <Button
+                      outline
+                      className="btn-sm btn-circular"
+                      color={`${CHOICE_BTN_COLOR}`}
+                      onClick={() => addChoice(id, choice_id)}
+                      id="add-choice"
+                    >
+                      <i className="fa fa-plus fa-center" id="add-choice"></i>
+                      <UncontrolledTooltip placeholder="top" target="add-choice">
+                        Add choice next to this
+                      </UncontrolledTooltip>
+                    </Button>
+                  </div>
                 </FormGroup>
               </li>
             );
           })}
-          {/* <<<<<<<<<<<<<<<<<<<<<       Options for Choice       >>>>>>>>>>>>>>>>>>>> */}
         </ol>
       </FormGroup>
     </li>

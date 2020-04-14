@@ -336,7 +336,7 @@ export default class Survey extends Component {
               questions: updatedQuestionErrors,
             },
           });
-          
+
           // if # of choices is less than 8, add one more
           const updatedChoices = [...question.choices];
           updatedChoices.splice(choice_id + 1, 0, { body: "choice" });
@@ -366,16 +366,18 @@ export default class Survey extends Component {
         const { choices } = question;
         // for this question of this id, remove the last options if valid
         if (choices.length > MIN_CHOICES) {
+          // #### Update Errors ####
           // update errors to track survey fields
           const { errors } = this.state;
           let updatedQuestionErrors = [...errors.questions];
-          let { choices } = updatedQuestionErrors[question_id];
-          let updatedChoices = _.filter(choices, (choice, index) =>
+          let { choices: choiceErrors } = updatedQuestionErrors[question_id];
+          let updatedChoices = _.filter(choiceErrors, (choice, index) =>
             index === choice_id ? false : true
           );
           updatedQuestionErrors[question_id].choices = updatedChoices;
           this.setQuestionErrors(updatedQuestionErrors);
 
+          // #### Update Choices ####
           // if # of choices is greater than 2, remove the last
           return {
             ...question,

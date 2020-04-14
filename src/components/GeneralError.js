@@ -7,9 +7,9 @@ export default function GeneralError() {
     <div className="container">
       <div className="row">
         <div className="col-12 text-center">
-          <img src="/general-error.png" width="60%" alt="general_error" />
+          <img src="/general-error.png" width={"38%"} alt="general_error" />
           <br />
-          <i className="fa fa-bug fa-5x mb-3" style={{ color: "#FDC01B" }}></i>
+          <i className="fa fa-bug fa-4x mb-3" style={{ color: "#FDC01B"}}></i>
           <h4>Something went wrong ... </h4>
         </div>
       </div>
