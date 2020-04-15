@@ -2,45 +2,19 @@
 
 import Axios from "axios";
 import React, { Component } from "react";
-// @ts-ignore
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
 import { Spinner } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
-import { MAXLEN, MINLEN } from "../shared/globals";
-import { getJWT, getUserId, isAuth } from "../shared/helperFunctions";
+import { INITIAL_STATE, MAXLEN, MINLEN } from "../shared/globals";
+import * as helpers from "../shared/helperFunctions";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRoute";
 import Footer from "./Footer";
 import GeneralError from "./GeneralError";
 import Login from "./Login";
 import Signup from "./Signup";
-import { default as Survey } from "./Survey";
-
-// Global Variables
-const INITIAL_STATE = {
-  jwt: "",
-  fields: {
-    id: 0,
-    username: "",
-    password: "",
-    password_confirm: "",
-    survey_name: "",
-    question: "",
-    option: "",
-  },
-  errors: {
-    username: null,
-    password: null,
-    password_confirm: null,
-    login: null,
-    signup: null,
-    survey_name: null,
-    question: null,
-  },
-  spinner: <></>,
-  surveys: [], // list of all surveys
-};
+import Survey from "./Survey";
 
 class Main extends Component {
   /**
@@ -49,26 +23,16 @@ class Main extends Component {
   constructor(props) {
     super(props);
     this.state = INITIAL_STATE;
+
     // Binding
+    this.setSurvey = this.setSurvey.bind(this);
     this.onChange = this.onChange.bind(this);
     this.onLoginSubmit = this.onLoginSubmit.bind(this);
     this.onSignupSubmit = this.onSignupSubmit.bind(this);
-    this.onAddSurveySubmit = this.onAddSurveySubmit.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.signupRedirect = this.signupRedirect.bind(this);
     this.loginRedirect = this.loginRedirect.bind(this);
-  }
-
-  // ############################################################
-  // ############################################################
-  // ##############       Life-cycle Methods       ##############
-  // ############################################################
-  // ############################################################
-  componentDidMount() {
-    // if the user has a valid token, get all his/her surveys
-    if (getJWT()) {
-      this.getSurveys(getUserId());
-    }
+    this.activateSpinner = this.activateSpinner.bind(this);
   }
 
   // ############################################################
@@ -77,10 +41,25 @@ class Main extends Component {
   // ############################################################
   // ############################################################
   // <<<<<<<<<<<<<<<<<<<<       General       >>>>>>>>>>>>>>>>>>>
+  handleGeneralError() {
+    return this.props.history.push(ROUTES.GENERAL_ERROR);
+  }
+
+  /**
+   * Sets the passed `survey` from Survey component to the local `survey`
+   * @param {object} survey The survey object
+   * @returns {null} null
+   */
+  setSurvey = survey => {
+    this.setState({ survey: survey });
+    // update the surveys array
+    this.getSurveys(helpers.getUserId());
+  };
+
   /** Set state to input values
    * @param {{ target: object; }} event
    */
-  onChange = (event) => {
+  onChange = event => {
     // reset error message
     this.setState({
       errors: { ...this.state.errors, login: null, signup: null },
@@ -114,7 +93,7 @@ class Main extends Component {
   /** Validate input rules on blur
    * @param {object} field
    */
-  onBlur = (field) => {
+  onBlur = field => {
     // destructor
     const {
       username,
@@ -179,18 +158,14 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            survey_name: (
-              <p>Survey name should be &ge; {MINLEN} characters!</p>
-            ),
+            survey_name: <p>Survey name should be &ge; {MINLEN} characters!</p>,
           },
         });
       } else if (survey_name.length >= MAXLEN) {
         this.setState({
           errors: {
             ...this.state.errors,
-            survey_name: (
-              <p>Survey name should be &le; {MAXLEN} characters!</p>
-            ),
+            survey_name: <p>Survey name should be &le; {MAXLEN} characters!</p>,
           },
         });
       }
@@ -205,7 +180,7 @@ class Main extends Component {
   /** When submit the form, Login with the passed credentials to obtain the `JWT`
    * @param {{ preventDefault: () => void; }} event
    */
-  onLoginSubmit = (event) => {
+  onLoginSubmit = event => {
     event.preventDefault();
     // check for errors
     const errors = this.state.errors;
@@ -245,7 +220,7 @@ class Main extends Component {
   /**
    * @param {{ preventDefault: () => void; }} event
    */
-  onSignupSubmit = (event) => {
+  onSignupSubmit = event => {
     event.preventDefault();
     // check for errors
     const errors = this.state.errors;
@@ -281,30 +256,6 @@ class Main extends Component {
     }
   };
 
-  // <<<<<<<<<<<<<<<<<<<<       Survey       >>>>>>>>>>>>>>>>>>>>
-  /**
-   * @param {{ preventDefault: () => void; }} event
-   */
-  onAddSurveySubmit = (event) => {
-    event.preventDefault();
-    // check for errors
-    const errors = this.state.errors;
-    const { survey_name } = this.state.fields;
-    // if no errors, submit
-    if (errors.survey_name === null && survey_name !== "") {
-      // remove error messages if exist
-      this.setState({ errors: { ...this.state.errors, survey_name: null } });
-
-      this.addSurvey(
-        baseUrl + "addSurvey",
-        this.state.fields.survey_name,
-        getUserId()
-      );
-    }
-    // * There is no need to handle errors as the submit button is disabled
-    // * when there is something wrong
-  };
-
   // ############################################################
   // ############################################################
   // ####################       Actions       ###################
@@ -328,7 +279,7 @@ class Main extends Component {
       username: _username,
       password: _password,
     })
-      .then((res) => {
+      .then(res => {
         // if correct response
         if (res.status === 200) {
           // console.log(res);
@@ -345,7 +296,7 @@ class Main extends Component {
           getSurveys(localStorage.getItem("id"));
         }
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error.response);
 
         // deactivate spinner
@@ -392,7 +343,7 @@ class Main extends Component {
         role: "ROLE_USER",
       },
     })
-      .then((res) => {
+      .then(res => {
         // console.log(res);
         // if user added successfully, redirect to login page and
         // fill in the credentials
@@ -403,7 +354,7 @@ class Main extends Component {
           this.setState({ spinner: <></> });
         }
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error.response);
 
         // deactivate spinner
@@ -431,16 +382,16 @@ class Main extends Component {
   /**
    * @param {any} _id
    */
-  getSurveys = (_id) => {
+  getSurveys = _id => {
     Axios.get(baseUrl + "getSurveysByUser", {
       headers: {
-        Authorization: getJWT(),
+        Authorization: helpers.getJWT(),
       },
       params: {
         id: _id,
       },
     })
-      .then((res) => {
+      .then(res => {
         // correct response
         if (res.status === 200) {
           // console.log(res);
@@ -448,10 +399,10 @@ class Main extends Component {
           this.setState({ surveys: res.data.surveyDTOS });
 
           // save to locale storage
-          localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
+          // localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
         }
       })
-      .catch((err) => {
+      .catch(err => {
         console.log(err.response);
       });
   };
@@ -464,9 +415,9 @@ class Main extends Component {
   loginPage = () => {
     return (
       <Login
-        onSubmit={(event) => this.onLoginSubmit(event)}
-        onChange={(event) => this.onChange(event)}
-        onBlur={(field) => this.onBlur(field)}
+        onSubmit={event => this.onLoginSubmit(event)}
+        onChange={event => this.onChange(event)}
+        onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
         signupOnClick={this.signupRedirect}
@@ -478,9 +429,9 @@ class Main extends Component {
   signupPage = () => {
     return (
       <Signup
-        onSubmit={(event) => this.onSignupSubmit(event)}
-        onChange={(event) => this.onChange(event)}
-        onBlur={(field) => this.onBlur(field)}
+        onSubmit={event => this.onSignupSubmit(event)}
+        onChange={event => this.onChange(event)}
+        onBlur={field => this.onBlur(field)}
         fields={this.state.fields}
         errors={this.state.errors}
         loginOnClick={this.loginRedirect}
@@ -490,7 +441,14 @@ class Main extends Component {
   };
 
   surveyPage = () => {
-    return <Survey getSurveys={this.getSurveys} surveys={this.state.surveys} />;
+    return (
+      <Survey
+        setSurvey={this.setSurvey}
+        surveys={this.state.surveys}
+        handleGeneralError={this.handleGeneralError}
+        getSurveys={this.getSurveys}
+      />
+    );
   };
 
   // ############################################################
@@ -505,7 +463,7 @@ class Main extends Component {
           <Switch>
             <AuthRoute
               exact
-              isAuthenticated={isAuth()}
+              isAuthenticated={helpers.isAuth()}
               path={ROUTES.HOME}
               component={this.surveyPage}
               logout={this.logout}

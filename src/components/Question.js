@@ -1,14 +1,15 @@
 import _ from "lodash";
+import PropTypes from "prop-types";
 import React from "react";
 import { Button, FormFeedback, FormGroup, Input, Label, UncontrolledTooltip } from "reactstrap";
 import { CHOICE_BTN_COLOR, CHOICE_COLOR_TEXT, QUESTION_BTN_COLOR, QUESTION_COLOR_TEXT } from "../shared/globals";
+import { errorsToBool, renderInnerHTML } from "../shared/helperFunctions";
 import * as VALIDATION from "../shared/validation";
 
 export default function Question({
   question,
   id,
   onChange,
-  onSubmit,
   onBlur,
   addChoice,
   removeChoice,
@@ -28,11 +29,12 @@ export default function Question({
           placeholder={question.body}
           value={question.body}
           onChange={event => onChange(event, VALIDATION.question, id)}
-          onSubmit={onSubmit}
           onBlur={() => onBlur(VALIDATION.question, id)}
-          invalid={errors.questions[id].body === null ? false : true}
+          invalid={errorsToBool(errors.questions[id].body)}
         />
-        <FormFeedback>{errors.questions[id].body}</FormFeedback>
+        <FormFeedback>
+          {renderInnerHTML(errors.questions[id].body)}
+        </FormFeedback>
         {/* <<<<<<<<<<<<<<<<<<<<<       Options for Questions       >>>>>>>>>>>>>>>>>>>> */}
         <div className="mt-2">
           <Button
@@ -80,16 +82,15 @@ export default function Question({
                     onChange={event =>
                       onChange(event, VALIDATION.choice, id, choice_id)
                     }
-                    onSubmit={onSubmit}
                     onBlur={() => onBlur(VALIDATION.choice, id, choice_id)}
-                    invalid={
-                      errors.questions[id].choices[choice_id].body === null
-                        ? false
-                        : true
-                    }
+                    invalid={errorsToBool(
+                      errors.questions[id].choices[choice_id].body
+                    )}
                   />
                   <FormFeedback>
-                    {errors.questions[id].choices[choice_id].body}
+                    {renderInnerHTML(
+                      errors.questions[id].choices[choice_id].body
+                    )}
                   </FormFeedback>
 
                   {/* <<<<<<<<<<<<<<<<<<<<<       Options for Choice       >>>>>>>>>>>>>>>>>>>> */}
@@ -101,7 +102,10 @@ export default function Question({
                       onClick={() => removeChoice(id, choice_id)}
                       id="remove-choice"
                     >
-                      <i className="fa fa-minus fa-center" id="remove-choice"></i>
+                      <i
+                        className="fa fa-minus fa-center"
+                        id="remove-choice"
+                      ></i>
                       <UncontrolledTooltip
                         placeholder="top"
                         target="remove-choice"
@@ -117,7 +121,10 @@ export default function Question({
                       id="add-choice"
                     >
                       <i className="fa fa-plus fa-center" id="add-choice"></i>
-                      <UncontrolledTooltip placeholder="top" target="add-choice">
+                      <UncontrolledTooltip
+                        placeholder="top"
+                        target="add-choice"
+                      >
                         Add choice next to this
                       </UncontrolledTooltip>
                     </Button>
@@ -137,4 +144,14 @@ export default function Question({
 // ##################       Prop Types       ##################
 // ############################################################
 // ############################################################
-Question.propTypes = {};
+Question.propTypes = {
+  question: PropTypes.object.isRequired,
+  id: PropTypes.number.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onBlur: PropTypes.func.isRequired,
+  addChoice: PropTypes.func.isRequired,
+  removeChoice: PropTypes.func.isRequired,
+  addQuestion: PropTypes.func.isRequired,
+  removeQuestion: PropTypes.func.isRequired,
+  errors: PropTypes.object.isRequired,
+};

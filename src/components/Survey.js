@@ -1,8 +1,11 @@
+import Axios from "axios";
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
-import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Table, UncontrolledTooltip } from "reactstrap";
-import { INITIAL_SURVEY, MAXLEN, MAX_CHOICES, MINLEN, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
+import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Spinner, Table, UncontrolledTooltip } from "reactstrap";
+import { baseUrl } from "../shared/baseUrl";
+import { GE_SYMBOL, INITIAL_ERRORS, INITIAL_SURVEY, LE_SYMBOL, MAX_CHOICES, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
+import * as helpers from "../shared/helperFunctions";
 import * as VALIDATION from "../shared/validation";
 import Question from "./Question";
 import { TableRow } from "./TableRow";
@@ -12,15 +15,7 @@ import { TableRow } from "./TableRow";
 // ###############       Global Variables       ###############
 // ############################################################
 // ############################################################
-const initial_errors = {
-  name: null,
-  questions: [
-    {
-      body: null,
-      choices: [{ body: null }, { body: null }],
-    },
-  ],
-};
+
 // ############################################################
 // ############################################################
 // ###############       Helper Functions       ###############
@@ -42,12 +37,38 @@ const renderTableRow = (survey_object, survey_count) => {
 };
 
 /**
- * @param {string} field
- * @param {object} error
+ * @param {object} collection The collection to be checked
+ * @param {Function} checker Callback to check against each element
+ * @param {boolean} empty The condition to be checked against the elements
+ * of the collection. If `true` => the object value should be empty,
+ * `false` => should not be empty
+ * @returns `false` if any error exists otherwise, `true`
  */
-const isDisabled = (field, error) => {
-  if (!error && field.length >= MINLEN && field.length <= MAXLEN) return false;
-  return true;
+const isValid = (collection, checker, empty = true) => {
+  // check survey name
+  let name = true;
+  if (empty) name = collection.name === "" ? true : false;
+  else name = collection.name === "" ? false : true;
+  if (!name) return false;
+
+  // check questions if any error exists, return false
+  let questions = true;
+  if (empty) questions = checker(collection.questions);
+  else questions = checker(collection.questions, false);
+  if (!questions) return false;
+
+  // check choices
+  let choices = true;
+  _.each(collection.questions, item => {
+    let _choices = true;
+    if (empty) _choices = checker(item.choices);
+    else _choices = checker(item.choices, false);
+    if (!_choices) {
+      choices = false;
+      return;
+    }
+  });
+  return choices;
 };
 
 export default class Survey extends Component {
@@ -57,10 +78,11 @@ export default class Survey extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isShowSurveysOpen: false,
+      isShowSurveysOpen: true,
       isAddSurveyOpen: false,
       survey: INITIAL_SURVEY,
-      errors: initial_errors,
+      errors: INITIAL_ERRORS,
+      spinner: <></>,
     };
     // binding
     this.showSurveysToggle = this.showSurveysToggle.bind(this);
@@ -73,6 +95,23 @@ export default class Survey extends Component {
     this.addChoice = this.addChoice.bind(this);
     this.removeChoice = this.removeChoice.bind(this);
     this.setQuestionErrors = this.setQuestionErrors.bind(this);
+    this.activateSpinner = this.activateSpinner.bind(this);
+    this.postSurvey = this.postSurvey.bind(this);
+    this.clearPostSubmitErrorMessage = this.clearPostSubmitErrorMessage.bind(
+      this
+    );
+  }
+
+  // ############################################################
+  // ############################################################
+  // ##############       Life-cycle Methods       ##############
+  // ############################################################
+  // ############################################################
+  componentDidMount() {
+    // if the user has a valid token, get all his/her surveys
+    if (helpers.isAuth()) {
+      this.props.getSurveys(helpers.getUserId());
+    }
   }
 
   // ############################################################
@@ -80,7 +119,6 @@ export default class Survey extends Component {
   // ################       Event Handlers       ################
   // ############################################################
   // ############################################################
-
   showSurveysToggle = () => {
     this.setState({
       isShowSurveysOpen: !this.state.isShowSurveysOpen,
@@ -95,7 +133,67 @@ export default class Survey extends Component {
     });
   };
 
-  onSubmit = () => {};
+  activateSpinner = () => {
+    // if any error exists do not load the spinner
+    this.setState({
+      spinner: (
+        <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
+      ),
+    });
+  };
+
+  deactivateSpinner = () => {
+    this.setState({
+      spinner: <></>,
+    });
+  };
+
+  clearPostSubmitErrorMessage = () => {
+    this.setState({
+      errors: {
+        ...this.state.errors,
+        post_survey: "",
+      },
+    });
+  };
+
+  onSubmit = event => {
+    event.preventDefault();
+    // Check if form is valid
+    let isErrorsFree = isValid(this.state.errors, helpers.checker);
+    let isAllFieldsFilled = isValid(this.state.survey, helpers.checker, false);
+
+    // If any empty field exists, set an error message
+    if (!isAllFieldsFilled) {
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          post_survey: `* Fill in all the fields before submitting, please!`,
+        },
+      });
+
+      // Deactivate Spinner
+      this.deactivateSpinner();
+      return;
+    }
+
+    // If errors exist
+    if (!isErrorsFree) {
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          post_survey: `* Fix the above issues, please!`,
+        },
+      });
+
+      // Deactivate Spinner
+      this.deactivateSpinner();
+      return;
+    }
+
+    // if valid, send the API request
+    this.postSurvey(baseUrl + "addSurvey", helpers.getUserId());
+  };
 
   /**
    * @param {Event} event
@@ -104,6 +202,9 @@ export default class Survey extends Component {
    * @param {number} choice_id The id of the choice being updated
    */
   onChange = (event, field, question_id = -1, choice_id = -1) => {
+    // clear previous error message
+    this.clearPostSubmitErrorMessage();
+
     const { value } = event.target;
 
     if (field === VALIDATION.survey_name) {
@@ -154,11 +255,9 @@ export default class Survey extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            name: (
-              <p>
-                Survey Name should be &ge; {VALIDATION.len.name.min} characters!
-              </p>
-            ),
+            name: `Survey Name should be ${
+              GE_SYMBOL + " " + VALIDATION.len.name.min
+            } characters!`,
           },
         });
       } else if (name.length > VALIDATION.len.name.max) {
@@ -166,16 +265,14 @@ export default class Survey extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            name: (
-              <p>
-                Survey Name should be &le; {VALIDATION.len.name.max} characters!
-              </p>
-            ),
+            name: `Survey Name should be ${
+              LE_SYMBOL + " " + VALIDATION.len.name.max
+            } characters!`,
           },
         });
       } else {
         // valid name length
-        this.setState({ errors: { ...this.state.errors, name: null } });
+        this.setState({ errors: { ...this.state.errors, name: "" } });
       }
     } else if (field === VALIDATION.question) {
       // ###################    question body     ###################
@@ -186,29 +283,25 @@ export default class Survey extends Component {
         // less than min length
         updatedQuestionErrors[question_id] = {
           ...this.state.errors.questions[question_id],
-          body: (
-            <p>
-              Question should be &ge; {VALIDATION.len.question.min} characters!
-            </p>
-          ),
+          body: `Question should be ${
+            GE_SYMBOL + " " + VALIDATION.len.question.min
+          } characters!`,
         };
         this.setQuestionErrors(updatedQuestionErrors);
       } else if (body.length > VALIDATION.len.question.max) {
         // greater than max length
         updatedQuestionErrors[question_id] = {
           ...this.state.errors.questions[question_id],
-          body: (
-            <p>
-              Question should be &le; {VALIDATION.len.question.max} characters!
-            </p>
-          ),
+          body: `Question should be ${
+            LE_SYMBOL + " " + VALIDATION.len.question.max
+          } characters!`,
         };
         this.setQuestionErrors(updatedQuestionErrors);
       } else {
         // valid name length
         updatedQuestionErrors[question_id] = {
           ...this.state.errors.questions[question_id],
-          body: null,
+          body: "",
         };
         this.setQuestionErrors(updatedQuestionErrors);
       }
@@ -222,23 +315,23 @@ export default class Survey extends Component {
       if (body.length < VALIDATION.len.choice.min) {
         // less than min length
         updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: (
-            <p>Choice should be &ge; {VALIDATION.len.choice.min} characters!</p>
-          ),
+          body: `Choice should be ${
+            GE_SYMBOL + " " + VALIDATION.len.choice.min
+          } characters!`,
         };
         this.setQuestionErrors(updatedQuestionErrors);
       } else if (body.length > VALIDATION.len.choice.max) {
         // greater than max length
         updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: (
-            <p>Choice should be &le; {VALIDATION.len.choice.max} characters!</p>
-          ),
+          body: `Choice should be ${
+            LE_SYMBOL + " " + VALIDATION.len.choice.max
+          } characters!`,
         };
         this.setQuestionErrors(updatedQuestionErrors);
       } else {
         // valid name length
         updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: null,
+          body: "",
         };
         this.setQuestionErrors(updatedQuestionErrors);
       }
@@ -275,8 +368,8 @@ export default class Survey extends Component {
     // update question errors to track survey fields
     const updatedQuestionErrors = [...this.state.errors.questions];
     updatedQuestionErrors.splice(question_id + 1, 0, {
-      body: null,
-      choices: [{ body: null }, { body: null }],
+      body: "",
+      choices: [{ body: "" }, { body: "" }],
     });
     this.setQuestionErrors(updatedQuestionErrors);
   };
@@ -327,7 +420,7 @@ export default class Survey extends Component {
             choice_id + 1,
             0,
             {
-              body: null,
+              body: "",
             }
           );
           this.setState({
@@ -411,11 +504,49 @@ export default class Survey extends Component {
   // ############################################################
   // ############################################################
   /**
-   * @param {string} _url
-   * @param {string} _name
-   * @param {string} _userID
+   * @param {string} _url The complete url for the API request
+   * @param {string} _userID The user ID who is sending the API request
    */
-  addSurvey = (_url, _name, _userID) => {};
+  postSurvey = (_url, _userID) => {
+    let { survey } = this.state;
+    Axios.post(
+      _url,
+      {
+        surveyUser: {
+          id: _userID,
+        },
+        ...survey,
+      },
+      {
+        headers: {
+          Authorization: helpers.getJWT(),
+        },
+      }
+    )
+      .then(res => {
+        // if correct response
+        if (res.status === 200) {
+          this.props.setSurvey(survey);
+          // console.log(res);
+
+          // Redirect to show my surveys
+          this.showSurveysToggle();
+
+          this.deactivateSpinner();
+        }
+      })
+      .catch(error => {
+        console.log(error.response);
+
+        // deactivate spinner
+        this.deactivateSpinner();
+
+        // handle general error
+        if (!error.response) {
+          this.props.handleGeneralError();
+        }
+      });
+  };
 
   // ############################################################
   // ############################################################
@@ -423,7 +554,7 @@ export default class Survey extends Component {
   // ############################################################
   // ############################################################
   render() {
-    const renderSurveys = _.map(this.props.surveys, renderTableRow);
+    const renderSurveys = _.reverse(_.map(this.props.surveys, renderTableRow));
     return (
       <Col className="col-sm-6 offset-sm-3">
         <div className="text-center mb-4">
@@ -483,9 +614,11 @@ export default class Survey extends Component {
                 value={this.state.survey.name}
                 onChange={event => this.onChange(event, VALIDATION.survey_name)}
                 onBlur={() => this.onBlur(VALIDATION.survey_name)}
-                invalid={this.state.errors.name !== null}
+                invalid={this.state.errors.name !== ""}
               />
-              <FormFeedback>{this.state.errors.name}</FormFeedback>
+              <FormFeedback>
+                {helpers.renderInnerHTML(this.state.errors.name)}
+              </FormFeedback>
             </FormGroup>
             <div className="mt-4">
               <Label className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}>
@@ -512,13 +645,15 @@ export default class Survey extends Component {
             <FormGroup>
               <Button
                 type="submit"
-                className="mt-5"
+                className={`mt-5 btn-lg`}
                 color="dark"
-                onClick={this.addSurveyToggle}
+                onClick={this.activateSpinner}
               >
-                Submit
+                {this.state.spinner} Submit
               </Button>
-              <div className="mt-2 text-danger">{}</div>
+              <div className="mt-2 text-danger font-weight-bold">
+                {helpers.renderInnerHTML(this.state.errors.post_survey)}
+              </div>
             </FormGroup>
           </Form>
         </Collapse>
@@ -533,8 +668,10 @@ export default class Survey extends Component {
 // ############################################################
 // ############################################################
 Survey.propTypes = {
-  getSurveys: PropTypes.func.isRequired,
+  setSurvey: PropTypes.func.isRequired,
   surveys: PropTypes.array.isRequired,
+  handleGeneralError: PropTypes.func.isRequired,
+  getSurveys: PropTypes.func.isRequired,
 };
 
 TableRow.propTypes = {

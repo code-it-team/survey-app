@@ -2,18 +2,7 @@
 
 import PropTypes from "prop-types";
 import React from "react";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Form,
-  FormFeedback,
-  FormGroup,
-  Input,
-  Label,
-  Media,
-} from "reactstrap";
+import { Button, Card, CardBody, CardHeader, Form, FormFeedback, FormGroup, Input, Label, Media } from "reactstrap";
 import "../index.css";
 
 function Login({
@@ -91,7 +80,9 @@ function Login({
                     >
                       {spinner} Login
                     </Button>
-                    <div className="mt-2 text-danger">{errors.login}</div>
+                    <div className="mt-2 text-danger font-weight-bold">
+                      {errors.login}
+                    </div>
                   </FormGroup>
                 </Form>
               </CardBody>

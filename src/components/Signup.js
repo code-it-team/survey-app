@@ -2,18 +2,7 @@
 
 import PropTypes from "prop-types";
 import React from "react";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Form,
-  FormFeedback,
-  FormGroup,
-  Input,
-  Label,
-  Media,
-} from "reactstrap";
+import { Button, Card, CardBody, CardHeader, Form, FormFeedback, FormGroup, Input, Label, Media } from "reactstrap";
 import "../index.css";
 
 function Signup({
@@ -107,7 +96,9 @@ function Signup({
                     >
                       {spinner} Signup
                     </Button>
-                    <div className="mt-2 text-danger">{errors.signup}</div>
+                    <div className="mt-2 text-danger font-weight-bold">
+                      {errors.signup}
+                    </div>
                   </FormGroup>
                 </Form>
               </CardBody>
