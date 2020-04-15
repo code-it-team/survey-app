@@ -100,6 +100,7 @@ export default class Survey extends Component {
     this.clearPostSubmitErrorMessage = this.clearPostSubmitErrorMessage.bind(
       this
     );
+    this.resetSurvey = this.resetSurvey.bind(this);
   }
 
   // ############################################################
@@ -119,6 +120,10 @@ export default class Survey extends Component {
   // ################       Event Handlers       ################
   // ############################################################
   // ############################################################
+  resetSurvey = () => {
+    this.setState({ survey: INITIAL_SURVEY, errors: INITIAL_ERRORS });
+  };
+
   showSurveysToggle = () => {
     this.setState({
       isShowSurveysOpen: !this.state.isShowSurveysOpen,
@@ -193,6 +198,9 @@ export default class Survey extends Component {
 
     // if valid, send the API request
     this.postSurvey(baseUrl + "addSurvey", helpers.getUserId());
+
+    // reset state
+    this.resetSurvey();
   };
 
   /**

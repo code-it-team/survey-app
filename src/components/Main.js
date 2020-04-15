@@ -33,6 +33,8 @@ class Main extends Component {
     this.signupRedirect = this.signupRedirect.bind(this);
     this.loginRedirect = this.loginRedirect.bind(this);
     this.activateSpinner = this.activateSpinner.bind(this);
+    this.handleGeneralError = this.handleGeneralError.bind(this);
+    this.resetState = this.resetState.bind(this);
   }
 
   // ############################################################
@@ -41,9 +43,13 @@ class Main extends Component {
   // ############################################################
   // ############################################################
   // <<<<<<<<<<<<<<<<<<<<       General       >>>>>>>>>>>>>>>>>>>
-  handleGeneralError() {
+  resetState = () => {
+    this.setState(INITIAL_STATE);
+  };
+
+  handleGeneralError = () => {
     return this.props.history.push(ROUTES.GENERAL_ERROR);
-  }
+  };
 
   /**
    * Sets the passed `survey` from Survey component to the local `survey`
@@ -82,11 +88,15 @@ class Main extends Component {
 
   // Redirect to Signup page
   signupRedirect = () => {
+    // reset state
+    this.resetState();
     this.props.history.push(ROUTES.SIGNUP);
   };
 
   // Redirect to Login page
   loginRedirect = () => {
+    // reset state
+    this.resetState();
     this.props.history.push(ROUTES.LOGIN);
   };
 
@@ -142,7 +152,7 @@ class Main extends Component {
         this.setState({
           errors: {
             ...this.state.errors,
-            password_confirm: <p>Please make sure your passwords match!</p>,
+            password_confirm: <p>* Make sure your passwords match, please!</p>,
           },
         });
       } else {
@@ -209,7 +219,7 @@ class Main extends Component {
       this.setState({
         errors: {
           ...this.state.errors,
-          login: <p>Please fill in the form fields!</p>,
+          login: <p>* Please fill in the form fields!</p>,
         },
         spinner: <></>,
       });
@@ -249,7 +259,7 @@ class Main extends Component {
       this.setState({
         errors: {
           ...this.state.errors,
-          signup: <p>Please Fill in the form fields!</p>,
+          signup: <p>* Fill in the form fields, please!</p>,
         },
         spinner: <></>,
       });
@@ -312,7 +322,7 @@ class Main extends Component {
           this.setState({
             errors: {
               ...this.state.errors,
-              login: <p>Username or Password is not valid!</p>,
+              login: <p>* Username or Password is not valid!</p>,
             },
           });
         }
@@ -321,7 +331,7 @@ class Main extends Component {
 
   // <<<<<<<<<<<<<<<<<<<<       Logout       >>>>>>>>>>>>>>>>>>>>
   /* Reset to the initial state, remove the token from the local 
-   storage, and redirect to login page
+  ** storage, and redirect to login page
   */
   logout = () => {
     this.resetState();
@@ -370,7 +380,7 @@ class Main extends Component {
           this.setState({
             errors: {
               ...this.state.errors,
-              signup: <p>Username already exists!</p>,
+              signup: <p>* Username already exists!</p>,
             },
           });
         }
@@ -402,8 +412,13 @@ class Main extends Component {
           // localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
         }
       })
-      .catch(err => {
-        console.log(err.response);
+      .catch(error => {
+        console.log(error.response);
+
+        // handle general error
+        if (!error.response) {
+          return this.props.history.push(ROUTES.GENERAL_ERROR);
+        }
       });
   };
 
