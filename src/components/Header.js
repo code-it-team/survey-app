@@ -2,14 +2,22 @@
 
 import PropTypes from "prop-types";
 import React, { Component } from "react";
-import { Button, Collapse, Nav, Navbar, NavbarBrand, NavbarToggler, NavItem } from "reactstrap";
+import {
+  Button,
+  Collapse,
+  Nav,
+  Navbar,
+  NavbarBrand,
+  NavbarToggler,
+  NavItem,
+} from "reactstrap";
 import * as ROUTES from "../shared/routes";
 
 export default class Header extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isNavOpen: false
+      isNavOpen: false,
     };
   }
   toggle = () => {
@@ -48,5 +56,5 @@ export default class Header extends Component {
 
 // prop types
 Header.propTypes = {
-  logout: PropTypes.func.isRequired
+  logout: PropTypes.func.isRequired,
 };

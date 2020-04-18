@@ -12,7 +12,7 @@ function Signup({
   fields,
   errors,
   loginOnClick,
-  spinner
+  spinner,
 }) {
   return (
     <div className="signupBody">
@@ -96,7 +96,9 @@ function Signup({
                     >
                       {spinner} Signup
                     </Button>
-                    <div className="mt-2 text-danger">{errors.signup}</div>
+                    <div className="mt-2 text-danger font-weight-bold">
+                      {errors.signup}
+                    </div>
                   </FormGroup>
                 </Form>
               </CardBody>
@@ -123,7 +125,11 @@ function Signup({
 
 export default Signup;
 
-// prop types
+// ############################################################
+// ############################################################
+// ##################       Prop Types       ##################
+// ############################################################
+// ############################################################
 Signup.propTypes = {
   onSubmit: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
@@ -131,5 +137,5 @@ Signup.propTypes = {
   fields: PropTypes.object.isRequired,
   errors: PropTypes.object.isRequired,
   loginOnClick: PropTypes.func.isRequired,
-  spinner: PropTypes.object.isRequired
+  spinner: PropTypes.object.isRequired,
 };

@@ -21,3 +21,12 @@ body {
   margin-top: 5rem;
   text-align: center;
 }
+
+.btn-circular {
+  border-radius: 40%;
+}
+
+.fa-center {
+  vertical-align: middle;
+  margin: auto;
+}
