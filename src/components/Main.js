@@ -1,20 +1,46 @@
 /** @format */
 
 import Axios from "axios";
+import _ from "lodash";
 import React, { Component } from "react";
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
 import { Spinner } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
-import { INITIAL_STATE, MAXLEN, MINLEN } from "../shared/globals";
+import { MINLEN } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as ROUTES from "../shared/routes";
 import AuthRoute from "./AuthRoute";
 import Footer from "./Footer";
 import GeneralError from "./GeneralError";
+import Home from "./Home";
 import Login from "./Login";
 import Signup from "./Signup";
-import Survey from "./Survey";
+import SurveyDetails from "./SurveyDetails";
+
+// #############################    State   #############################
+export const INITIAL_STATE = {
+  jwt: "",
+  fields: {
+    id: 0,
+    username: "",
+    password: "",
+    password_confirm: "",
+    question: "",
+    option: "",
+  },
+  errors: {
+    username: null,
+    password: null,
+    password_confirm: null,
+    login: null,
+    signup: null,
+    question: null,
+    survey: {},
+  },
+  spinner: <></>,
+  surveys: [], // list of all surveys
+};
 
 class Main extends Component {
   /**
@@ -23,18 +49,30 @@ class Main extends Component {
   constructor(props) {
     super(props);
     this.state = INITIAL_STATE;
+  }
 
-    // Binding
-    this.setSurvey = this.setSurvey.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.onLoginSubmit = this.onLoginSubmit.bind(this);
-    this.onSignupSubmit = this.onSignupSubmit.bind(this);
-    this.onBlur = this.onBlur.bind(this);
-    this.signupRedirect = this.signupRedirect.bind(this);
-    this.loginRedirect = this.loginRedirect.bind(this);
-    this.activateSpinner = this.activateSpinner.bind(this);
-    this.handleGeneralError = this.handleGeneralError.bind(this);
-    this.resetState = this.resetState.bind(this);
+  // ############################################################
+  // ############################################################
+  // ##############       Life-cycle Methods       ##############
+  // ############################################################
+  // ############################################################
+  componentDidMount() {
+    // if the user has a valid token, get all his/her surveys
+    if (helpers.isAuth()) {
+      this.getSurveys();
+      helpers.persistSurveys(this.state.surveys);
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (helpers.isAuth()) {
+      // mirror surveys
+      if (_.isEqual(prevState.surveys, this.state.surveys))
+        helpers.persistSurveys(this.state.surveys);
+      // mirror errors
+      if (_.isEqual(prevState.errors, this.state.errors))
+        helpers.persistErrors(this.state.errors);
+    }
   }
 
   // ############################################################
@@ -43,23 +81,24 @@ class Main extends Component {
   // ############################################################
   // ############################################################
   // <<<<<<<<<<<<<<<<<<<<       General       >>>>>>>>>>>>>>>>>>>
+  setSurveyErrors = id => {
+    // Mirror Survey structure to errors
+    let errors = {
+      ...this.state.errors,
+      survey: helpers.mirrorErrors(this.state.surveys[id]),
+    };
+    this.setState({
+      errors: errors,
+    });
+    helpers.persistErrors(errors);
+  };
+
   resetState = () => {
     this.setState(INITIAL_STATE);
   };
 
   handleGeneralError = () => {
     return this.props.history.push(ROUTES.GENERAL_ERROR);
-  };
-
-  /**
-   * Sets the passed `survey` from Survey component to the local `survey`
-   * @param {object} survey The survey object
-   * @returns {null} null
-   */
-  setSurvey = survey => {
-    this.setState({ survey: survey });
-    // update the surveys array
-    this.getSurveys(helpers.getUserId());
   };
 
   /** Set state to input values
@@ -83,6 +122,12 @@ class Main extends Component {
       spinner: (
         <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
       ),
+    });
+  };
+
+  deactivateSpinner = () => {
+    this.setState({
+      spinner: <></>,
     });
   };
 
@@ -161,29 +206,6 @@ class Main extends Component {
         });
       }
     }
-
-    // ===================      Survey Name       =================
-    else if (field === "survey_name") {
-      if (survey_name.length < MINLEN) {
-        this.setState({
-          errors: {
-            ...this.state.errors,
-            survey_name: <p>Survey name should be &ge; {MINLEN} characters!</p>,
-          },
-        });
-      } else if (survey_name.length >= MAXLEN) {
-        this.setState({
-          errors: {
-            ...this.state.errors,
-            survey_name: <p>Survey name should be &le; {MAXLEN} characters!</p>,
-          },
-        });
-      }
-      // if no errors
-      else {
-        this.setState({ errors: { ...this.state.errors, survey_name: null } });
-      }
-    }
   };
 
   // <<<<<<<<<<<<<<<<<<<<<       Login       >>>>>>>>>>>>>>>>>>>>
@@ -210,8 +232,7 @@ class Main extends Component {
       this.login(
         baseUrl + "authenticate",
         this.state.fields.username,
-        this.state.fields.password,
-        this.getSurveys
+        this.state.fields.password
       );
     }
     // else, if the login form was not filled in print it an error message
@@ -221,8 +242,8 @@ class Main extends Component {
           ...this.state.errors,
           login: <p>* Please fill in the form fields!</p>,
         },
-        spinner: <></>,
       });
+      this.deactivateSpinner();
     }
   };
 
@@ -261,8 +282,8 @@ class Main extends Component {
           ...this.state.errors,
           signup: <p>* Fill in the form fields, please!</p>,
         },
-        spinner: <></>,
       });
+      this.deactivateSpinner();
     }
   };
 
@@ -282,9 +303,8 @@ class Main extends Component {
    * @param {string} _username
    * @param {string} _password
    * @param {string} _url
-   * @param {Function} getSurveys
    */
-  login = (_url, _username, _password, getSurveys) => {
+  login = (_url, _username, _password) => {
     Axios.post(_url, {
       username: _username,
       password: _password,
@@ -300,17 +320,15 @@ class Main extends Component {
           localStorage.setItem("jwt", res.data.jwt);
           localStorage.setItem("username", this.state.fields.username);
           localStorage.setItem("id", this.state.fields.id.toString());
+          this.deactivateSpinner();
           this.props.history.push(ROUTES.HOME);
-
-          // get the surveys' of this user
-          getSurveys(localStorage.getItem("id"));
         }
       })
       .catch(error => {
         console.log(error.response);
 
         // deactivate spinner
-        this.setState({ spinner: <></> });
+        this.deactivateSpinner();
 
         // handle general error
         if (!error.response) {
@@ -330,9 +348,9 @@ class Main extends Component {
   };
 
   // <<<<<<<<<<<<<<<<<<<<       Logout       >>>>>>>>>>>>>>>>>>>>
-  /* Reset to the initial state, remove the token from the local 
-  ** storage, and redirect to login page
-  */
+  /* Reset to the initial state, remove the token from the local
+   ** storage, and redirect to login page
+   */
   logout = () => {
     this.resetState();
     localStorage.clear();
@@ -361,14 +379,14 @@ class Main extends Component {
           this.props.history.push(ROUTES.LOGIN);
 
           // deactivate spinner
-          this.setState({ spinner: <></> });
+          this.deactivateSpinner();
         }
       })
       .catch(error => {
         console.log(error.response);
 
         // deactivate spinner
-        this.setState({ spinner: <></> });
+        this.deactivateSpinner();
 
         // handle general error
         if (!error.response) {
@@ -389,16 +407,13 @@ class Main extends Component {
 
   // <<<<<<<<<<<<<<<<<<<<       Survey       >>>>>>>>>>>>>>>>>>>>
   // callback function to get the surveys of a user by id, save them to local storage
-  /**
-   * @param {any} _id
-   */
-  getSurveys = _id => {
+  getSurveys = () => {
     Axios.get(baseUrl + "getSurveysByUser", {
       headers: {
         Authorization: helpers.getJWT(),
       },
       params: {
-        id: _id,
+        id: helpers.getUserId(),
       },
     })
       .then(res => {
@@ -407,6 +422,7 @@ class Main extends Component {
           // console.log(res);
 
           this.setState({ surveys: res.data.surveyDTOS });
+          helpers.persistSurveys(res.data.surveyDTOS);
 
           // save to locale storage
           // localStorage.setItem("surveys", JSON.stringify(this.state.surveys));
@@ -420,6 +436,10 @@ class Main extends Component {
           return this.props.history.push(ROUTES.GENERAL_ERROR);
         }
       });
+  };
+
+  addQuestion = question_id => {
+    
   };
 
   // ############################################################
@@ -457,11 +477,24 @@ class Main extends Component {
 
   surveyPage = () => {
     return (
-      <Survey
-        setSurvey={this.setSurvey}
+      <Home
+        getSurveys={this.getSurveys}
         surveys={this.state.surveys}
         handleGeneralError={this.handleGeneralError}
-        getSurveys={this.getSurveys}
+        setSurveyErrors={this.setSurveyErrors}
+      />
+    );
+  };
+
+  surveyDetailsPage = ({ match }) => {
+    const matchedId = +match.params.id;
+    return (
+      <SurveyDetails
+        survey={helpers.getPersistentSurveys()[matchedId]}
+        errors={helpers.getPersistentErrors().survey}
+        isEdit={true}
+        spinner={this.state.spinner}
+        activateSpinner={this.activateSpinner}
       />
     );
   };
@@ -483,10 +516,16 @@ class Main extends Component {
               component={this.surveyPage}
               logout={this.logout}
             />
+            <AuthRoute
+              isAuthenticated={helpers.isAuth()}
+              path={ROUTES.SURVEY_DETAILS}
+              component={this.surveyDetailsPage}
+              logout={this.logout}
+            />
             <Route path={ROUTES.LOGIN} component={this.loginPage} />
             <Route path={ROUTES.SIGNUP} component={this.signupPage} />
             <Route path={ROUTES.GENERAL_ERROR} component={GeneralError} />
-            <Redirect to={ROUTES.LOGIN} />
+            <Redirect to={ROUTES.HOME} />
           </Switch>
           <Footer />
         </React.Fragment>

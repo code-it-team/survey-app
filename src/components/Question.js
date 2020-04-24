@@ -3,12 +3,12 @@ import PropTypes from "prop-types";
 import React from "react";
 import { Button, FormFeedback, FormGroup, Input, Label, UncontrolledTooltip } from "reactstrap";
 import { CHOICE_BTN_COLOR, CHOICE_COLOR_TEXT, QUESTION_BTN_COLOR, QUESTION_COLOR_TEXT } from "../shared/globals";
-import { errorsToBool, renderInnerHTML } from "../shared/helperFunctions";
+import * as helpers from "../shared/helperFunctions";
 import * as VALIDATION from "../shared/validation";
 
 export default function Question({
   question,
-  id,
+  question_id,
   onChange,
   onBlur,
   addChoice,
@@ -18,22 +18,22 @@ export default function Question({
   errors,
 }) {
   return (
-    <li className="mb-5">
-      {id > 0 ? <hr className="mt-5 mb-5" /> : ""}
+    <li className="mb-5" key={question_id}>
+      {question_id > 0 ? <hr className="mt-5 mb-5" /> : ""}
       <FormGroup>
         <Input
           type="textarea"
           rows="1"
           className={`${QUESTION_COLOR_TEXT}`}
-          name={`question_${id}`}
-          placeholder={question.body}
+          name={`question_${question_id}`}
+          placeholder="Question"
           value={question.body}
-          onChange={event => onChange(event, VALIDATION.question, id)}
-          onBlur={() => onBlur(VALIDATION.question, id)}
-          invalid={errorsToBool(errors.questions[id].body)}
+          onChange={event => onChange(event, VALIDATION.question, question_id)}
+          onBlur={() => onBlur(VALIDATION.question, question_id)}
+          invalid={helpers.errorsToBool(errors.questions[question_id].body)}
         />
         <FormFeedback>
-          {renderInnerHTML(errors.questions[id].body)}
+          {helpers.renderInnerHTML(errors.questions[question_id].body)}
         </FormFeedback>
         {/* <<<<<<<<<<<<<<<<<<<<<       Options for Questions       >>>>>>>>>>>>>>>>>>>> */}
         <div className="mt-2">
@@ -41,7 +41,7 @@ export default function Question({
             outline
             className="mr-2 btn-circular"
             color={`${QUESTION_BTN_COLOR}`}
-            onClick={() => removeQuestion(id)}
+            onClick={() => removeQuestion(question_id)}
             id="remove-question"
           >
             <i className="fa fa-minus fa-center" id="remove-question"></i>
@@ -53,7 +53,7 @@ export default function Question({
             outline
             className="btn-circular"
             color={`${QUESTION_BTN_COLOR}`}
-            onClick={() => addQuestion(id)}
+            onClick={() => addQuestion(question_id)}
             id="add-question"
           >
             <i className="fa fa-plus fa-center" id="add-question"></i>
@@ -77,19 +77,21 @@ export default function Question({
                     rows="1"
                     className={`mb-1 ${CHOICE_COLOR_TEXT}`}
                     name={`choice_${choice_id}`}
-                    placeholder={choice.body}
+                    placeholder="Choice"
                     value={choice.body}
                     onChange={event =>
-                      onChange(event, VALIDATION.choice, id, choice_id)
+                      onChange(event, VALIDATION.choice, question_id, choice_id)
                     }
-                    onBlur={() => onBlur(VALIDATION.choice, id, choice_id)}
-                    invalid={errorsToBool(
-                      errors.questions[id].choices[choice_id].body
+                    onBlur={() =>
+                      onBlur(VALIDATION.choice, question_id, choice_id)
+                    }
+                    invalid={helpers.errorsToBool(
+                      errors.questions[question_id].choices[choice_id].body
                     )}
                   />
                   <FormFeedback>
-                    {renderInnerHTML(
-                      errors.questions[id].choices[choice_id].body
+                    {helpers.renderInnerHTML(
+                      errors.questions[question_id].choices[choice_id].body
                     )}
                   </FormFeedback>
 
@@ -99,7 +101,7 @@ export default function Question({
                       outline
                       className="mr-2 btn-sm btn-circular"
                       color={`${CHOICE_BTN_COLOR}`}
-                      onClick={() => removeChoice(id, choice_id)}
+                      onClick={() => removeChoice(question_id, choice_id)}
                       id="remove-choice"
                     >
                       <i
@@ -117,7 +119,7 @@ export default function Question({
                       outline
                       className="btn-sm btn-circular"
                       color={`${CHOICE_BTN_COLOR}`}
-                      onClick={() => addChoice(id, choice_id)}
+                      onClick={() => addChoice(question_id, choice_id)}
                       id="add-choice"
                     >
                       <i className="fa fa-plus fa-center" id="add-choice"></i>
@@ -146,7 +148,7 @@ export default function Question({
 // ############################################################
 Question.propTypes = {
   question: PropTypes.object.isRequired,
-  id: PropTypes.number.isRequired,
+  question_id: PropTypes.number.isRequired,
   onChange: PropTypes.func.isRequired,
   onBlur: PropTypes.func.isRequired,
   addChoice: PropTypes.func.isRequired,

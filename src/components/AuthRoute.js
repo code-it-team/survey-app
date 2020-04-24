@@ -16,12 +16,12 @@ export default function AuthRoute({
   return (
     <Route
       {...rest}
-      render={() =>
+      render={props =>
         isAuthenticated ? (
           <Container fluid>
             <Row style={{ marginTop: "8rem", marginBottom: "2rem" }}>
               <Header logout={logout} />
-              <Component />
+              <Component {...props} />
             </Row>
           </Container>
         ) : (

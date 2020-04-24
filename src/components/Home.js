@@ -1,14 +1,15 @@
+//@ts-check
 import Axios from "axios";
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
-import { Button, Col, Collapse, Form, FormFeedback, FormGroup, Input, Label, Spinner, Table, UncontrolledTooltip } from "reactstrap";
+import { Link } from "react-router-dom";
+import { Button, Col, Collapse, Spinner, Table, UncontrolledTooltip } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
-import { GE_SYMBOL, INITIAL_ERRORS, INITIAL_SURVEY, LE_SYMBOL, MAX_CHOICES, MIN_CHOICES, QUESTION_COLOR_TEXT } from "../shared/globals";
+import { GE_SYMBOL, INITIAL_ERRORS, INITIAL_SURVEY, LE_SYMBOL, MAX_CHOICES, MIN_CHOICES } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as VALIDATION from "../shared/validation";
-import Question from "./Question";
-import { TableRow } from "./TableRow";
+import SurveyDetails from "./SurveyDetails";
 
 // ############################################################
 // ############################################################
@@ -25,14 +26,37 @@ import { TableRow } from "./TableRow";
  * @param {object} survey_object
  * @param {number} survey_count
  */
-const renderTableRow = (survey_object, survey_count) => {
+const renderTableRow = (
+  survey_object,
+  survey_count,
+  deleteSurvey,
+  setSurveyErrors
+) => {
   const { name } = survey_object;
   return (
-    <TableRow
-      survey_name={name}
-      survey_count={survey_count}
-      key={survey_count}
-    />
+    <tr key={survey_count}>
+      <th scope="row">{survey_count + 1}</th>
+      <td>
+        {
+          <Link
+            to={`/surveys/${survey_count}`}
+            onClick={() => setSurveyErrors(survey_count)}
+          >
+            {name}
+          </Link>
+        }
+      </td>
+      <td>
+        <span
+          className="fa fa-trash-o"
+          id="delete-survey"
+          onClick={() => deleteSurvey(survey_count)}
+        ></span>
+        <UncontrolledTooltip placeholder="top" target="delete-survey">
+          delete the survey
+        </UncontrolledTooltip>
+      </td>
+    </tr>
   );
 };
 
@@ -71,7 +95,7 @@ const isValid = (collection, checker, empty = true) => {
   return choices;
 };
 
-export default class Survey extends Component {
+export default class Home extends Component {
   /**
    * @param {any} props
    */
@@ -84,23 +108,6 @@ export default class Survey extends Component {
       errors: INITIAL_ERRORS,
       spinner: <></>,
     };
-    // binding
-    this.showSurveysToggle = this.showSurveysToggle.bind(this);
-    this.addSurveyToggle = this.addSurveyToggle.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.onBlur = this.onBlur.bind(this);
-    this.addQuestion = this.addQuestion.bind(this);
-    this.removeQuestion = this.removeQuestion.bind(this);
-    this.addChoice = this.addChoice.bind(this);
-    this.removeChoice = this.removeChoice.bind(this);
-    this.setQuestionErrors = this.setQuestionErrors.bind(this);
-    this.activateSpinner = this.activateSpinner.bind(this);
-    this.postSurvey = this.postSurvey.bind(this);
-    this.clearPostSubmitErrorMessage = this.clearPostSubmitErrorMessage.bind(
-      this
-    );
-    this.resetSurvey = this.resetSurvey.bind(this);
   }
 
   // ############################################################
@@ -111,7 +118,7 @@ export default class Survey extends Component {
   componentDidMount() {
     // if the user has a valid token, get all his/her surveys
     if (helpers.isAuth()) {
-      this.props.getSurveys(helpers.getUserId());
+      this.props.getSurveys();
     }
   }
 
@@ -197,7 +204,7 @@ export default class Survey extends Component {
     }
 
     // if valid, send the API request
-    this.postSurvey(baseUrl + "addSurvey", helpers.getUserId());
+    this.postSurvey(helpers.getUserId());
 
     // reset state
     this.resetSurvey();
@@ -512,13 +519,12 @@ export default class Survey extends Component {
   // ############################################################
   // ############################################################
   /**
-   * @param {string} _url The complete url for the API request
    * @param {string} _userID The user ID who is sending the API request
    */
-  postSurvey = (_url, _userID) => {
+  postSurvey = _userID => {
     let { survey } = this.state;
     Axios.post(
-      _url,
+      baseUrl + "addSurvey",
       {
         surveyUser: {
           id: _userID,
@@ -534,7 +540,7 @@ export default class Survey extends Component {
       .then(res => {
         // if correct response
         if (res.status === 200) {
-          this.props.setSurvey(survey);
+          this.props.getSurveys();
           // console.log(res);
 
           // Redirect to show my surveys
@@ -544,7 +550,7 @@ export default class Survey extends Component {
         }
       })
       .catch(error => {
-        console.log(error.response);
+        console.error(error.response);
 
         // deactivate spinner
         this.deactivateSpinner();
@@ -556,13 +562,44 @@ export default class Survey extends Component {
       });
   };
 
+  /**
+   * @param {surveyId} surveyId The id of the survey to be deleted
+   */
+  deleteSurvey = surveyId => {
+    Axios.delete(baseUrl + "deleteSurvey", {
+      params: {
+        surveyId: surveyId,
+      },
+      headers: {
+        Authorization: helpers.getJWT(),
+      },
+    })
+      .then(response => {
+        if (response.status === 200) {
+        }
+        //TODO error handling
+      })
+      .catch(error => {
+        console.error(error.response);
+      });
+  };
+
   // ############################################################
   // ############################################################
   // ####################       Render       ####################
   // ############################################################
   // ############################################################
   render() {
-    const renderSurveys = _.reverse(_.map(this.props.surveys, renderTableRow));
+    const renderSurveys = _.reverse(
+      _.map(this.props.surveys, (survey_object, survey_count) =>
+        renderTableRow(
+          survey_object,
+          survey_count,
+          this.deleteSurvey,
+          this.props.setSurveyErrors
+        )
+      )
+    );
     return (
       <Col className="col-sm-6 offset-sm-3">
         <div className="text-center mb-4">
@@ -600,7 +637,6 @@ export default class Survey extends Component {
                 <th width="5">#</th>
                 <th>Survey</th>
                 <th width="5"></th>
-                <th width="5"></th>
               </tr>
             </thead>
             <tbody>{renderSurveys}</tbody>
@@ -609,61 +645,19 @@ export default class Survey extends Component {
 
         {/* <<<<<<<<<<<<<<<<<<<<<       Add New Survey       >>>>>>>>>>>>>>>>>>>> */}
         <Collapse isOpen={this.state.isAddSurveyOpen}>
-          <Form name="addSurveyForm" onSubmit={this.onSubmit}>
-            <FormGroup>
-              <Label htmlFor="survey-name" className="font-weight-bold">
-                SURVEY NAME
-              </Label>
-              <Input
-                type="text"
-                name="name"
-                id="survey-name"
-                placeholder={this.state.survey.name}
-                value={this.state.survey.name}
-                onChange={event => this.onChange(event, VALIDATION.survey_name)}
-                onBlur={() => this.onBlur(VALIDATION.survey_name)}
-                invalid={this.state.errors.name !== ""}
-              />
-              <FormFeedback>
-                {helpers.renderInnerHTML(this.state.errors.name)}
-              </FormFeedback>
-            </FormGroup>
-            <div className="mt-4">
-              <Label className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}>
-                QUESTIONS:
-              </Label>
-              <ol>
-                {_.map(this.state.survey.questions, (question, index) => (
-                  <Question
-                    question={question}
-                    key={index}
-                    id={index}
-                    onBlur={this.onBlur}
-                    onChange={this.onChange}
-                    addChoice={this.addChoice}
-                    removeChoice={this.removeChoice}
-                    addQuestion={this.addQuestion}
-                    removeQuestion={this.removeQuestion}
-                    errors={this.state.errors}
-                  />
-                ))}
-              </ol>
-            </div>
-
-            <FormGroup>
-              <Button
-                type="submit"
-                className={`mt-5 btn-lg`}
-                color="dark"
-                onClick={this.activateSpinner}
-              >
-                {this.state.spinner} Submit
-              </Button>
-              <div className="mt-2 text-danger font-weight-bold">
-                {helpers.renderInnerHTML(this.state.errors.post_survey)}
-              </div>
-            </FormGroup>
-          </Form>
+          <SurveyDetails
+            activateSpinner={this.activateSpinner}
+            addChoice={this.addChoice}
+            removeChoice={this.removeChoice}
+            addQuestion={this.addQuestion}
+            removeQuestion={this.removeQuestion}
+            errors={this.state.errors}
+            onBlur={this.onBlur}
+            onChange={this.onChange}
+            onSubmit={this.onSubmit}
+            spinner={this.state.spinner}
+            survey={this.state.survey}
+          />
         </Collapse>
       </Col>
     );
@@ -675,14 +669,7 @@ export default class Survey extends Component {
 // ##################       Prop Types       ##################
 // ############################################################
 // ############################################################
-Survey.propTypes = {
-  setSurvey: PropTypes.func.isRequired,
+Home.propTypes = {
   surveys: PropTypes.array.isRequired,
   handleGeneralError: PropTypes.func.isRequired,
-  getSurveys: PropTypes.func.isRequired,
-};
-
-TableRow.propTypes = {
-  survey_name: PropTypes.string.isRequired,
-  survey_count: PropTypes.number.isRequired,
 };
