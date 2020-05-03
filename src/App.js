@@ -2,8 +2,8 @@
 
 import React, { Component } from "react";
 import { BrowserRouter } from "react-router-dom";
-import "react-toastify/dist/ReactToastify.css";
 import Main from "./components/Main";
+import "react-toastify/dist/ReactToastify.css";
 
 export default class App extends Component {
   render() {

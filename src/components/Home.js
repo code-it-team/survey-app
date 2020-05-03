@@ -4,11 +4,13 @@ import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
 import { Link } from "react-router-dom";
-import { Button, Col, Collapse, Spinner, Table, UncontrolledTooltip } from "reactstrap";
+import { toast, ToastContainer } from "react-toastify";
+import { Button, Col, Collapse, Table, UncontrolledTooltip } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
-import { GE_SYMBOL, INITIAL_ERRORS, INITIAL_SURVEY, LE_SYMBOL, MAX_CHOICES, MIN_CHOICES } from "../shared/globals";
+import { INITIAL_ERRORS, INITIAL_SURVEY } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
-import * as VALIDATION from "../shared/validation";
+import * as messages from "../shared/messages";
+import * as actions from "../state/actions";
 import SurveyDetails from "./SurveyDetails";
 
 // ############################################################
@@ -30,69 +32,36 @@ const renderTableRow = (
   survey_object,
   survey_count,
   deleteSurvey,
-  setSurveyErrors
+  setSurveyErrors,
+  setSurveyBeingEdited
 ) => {
   const { name } = survey_object;
   return (
-    <tr key={survey_count}>
+    <tr key={survey_count} className="align-middle">
       <th scope="row">{survey_count + 1}</th>
       <td>
         {
           <Link
             to={`/surveys/${survey_count}`}
-            onClick={() => setSurveyErrors(survey_count)}
+            onClick={() => {
+              setSurveyBeingEdited(survey_count);
+              setSurveyErrors(survey_count);
+            }}
           >
             {name}
           </Link>
         }
       </td>
       <td>
-        <span
-          className="fa fa-trash-o"
-          id="delete-survey"
-          onClick={() => deleteSurvey(survey_count)}
-        ></span>
-        <UncontrolledTooltip placeholder="top" target="delete-survey">
-          delete the survey
-        </UncontrolledTooltip>
+        <Button outline onClick={() => deleteSurvey(survey_object.id)} color="danger">
+          <i className="fa fa-trash-o" id="delete-survey"></i>
+          <UncontrolledTooltip placeholder="top" target="delete-survey">
+            delete the survey
+          </UncontrolledTooltip>
+        </Button>
       </td>
     </tr>
   );
-};
-
-/**
- * @param {object} collection The collection to be checked
- * @param {Function} checker Callback to check against each element
- * @param {boolean} empty The condition to be checked against the elements
- * of the collection. If `true` => the object value should be empty,
- * `false` => should not be empty
- * @returns `false` if any error exists otherwise, `true`
- */
-const isValid = (collection, checker, empty = true) => {
-  // check survey name
-  let name = true;
-  if (empty) name = collection.name === "" ? true : false;
-  else name = collection.name === "" ? false : true;
-  if (!name) return false;
-
-  // check questions if any error exists, return false
-  let questions = true;
-  if (empty) questions = checker(collection.questions);
-  else questions = checker(collection.questions, false);
-  if (!questions) return false;
-
-  // check choices
-  let choices = true;
-  _.each(collection.questions, item => {
-    let _choices = true;
-    if (empty) _choices = checker(item.choices);
-    else _choices = checker(item.choices, false);
-    if (!_choices) {
-      choices = false;
-      return;
-    }
-  });
-  return choices;
 };
 
 export default class Home extends Component {
@@ -108,6 +77,17 @@ export default class Home extends Component {
       errors: INITIAL_ERRORS,
       spinner: <></>,
     };
+
+    // binding
+    this.activateSpinner = actions.activateSpinner.bind(this);
+    this.deactivateSpinner = actions.deactivateSpinner.bind(this);
+    this.addChoice = actions.addChoice.bind(this);
+    this.removeChoice = actions.removeChoice.bind(this);
+    this.addQuestion = actions.addQuestion.bind(this);
+    this.removeQuestion = actions.removeQuestion.bind(this);
+    this.onBlur = actions.onBlur.bind(this);
+    this.onChange = actions.onChange.bind(this);
+    this.setQuestionErrors = actions.setQuestionErrors.bind(this);
   }
 
   // ############################################################
@@ -145,35 +125,15 @@ export default class Home extends Component {
     });
   };
 
-  activateSpinner = () => {
-    // if any error exists do not load the spinner
-    this.setState({
-      spinner: (
-        <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
-      ),
-    });
-  };
-
-  deactivateSpinner = () => {
-    this.setState({
-      spinner: <></>,
-    });
-  };
-
-  clearPostSubmitErrorMessage = () => {
-    this.setState({
-      errors: {
-        ...this.state.errors,
-        post_survey: "",
-      },
-    });
-  };
-
   onSubmit = event => {
     event.preventDefault();
     // Check if form is valid
-    let isErrorsFree = isValid(this.state.errors, helpers.checker);
-    let isAllFieldsFilled = isValid(this.state.survey, helpers.checker, false);
+    let isErrorsFree = helpers.isValid(this.state.errors, helpers.checker);
+    let isAllFieldsFilled = helpers.isValid(
+      this.state.survey,
+      helpers.checker,
+      false
+    );
 
     // If any empty field exists, set an error message
     if (!isAllFieldsFilled) {
@@ -204,307 +164,10 @@ export default class Home extends Component {
     }
 
     // if valid, send the API request
-    this.postSurvey(helpers.getUserId());
+    this.postSurvey();
 
     // reset state
     this.resetSurvey();
-  };
-
-  /**
-   * @param {Event} event
-   * @param {string} field The input type question, choice
-   * @param {number} question_id The id of the question being updated
-   * @param {number} choice_id The id of the choice being updated
-   */
-  onChange = (event, field, question_id = -1, choice_id = -1) => {
-    // clear previous error message
-    this.clearPostSubmitErrorMessage();
-
-    const { value } = event.target;
-
-    if (field === VALIDATION.survey_name) {
-      // survey name
-      this.setState({
-        survey: { ...this.state.survey, name: value },
-      });
-    } else if (field === VALIDATION.question) {
-      // question body
-      let updatedQuestions = [...this.state.survey.questions];
-      updatedQuestions[question_id] = {
-        ...updatedQuestions[question_id],
-        body: value,
-      };
-      this.setState({
-        survey: {
-          ...this.state.survey,
-          questions: updatedQuestions,
-        },
-      });
-    } else if (field === VALIDATION.choice) {
-      let updatedQuestions = [...this.state.survey.questions];
-      // choice body
-      updatedQuestions[question_id]["choices"][choice_id] = {
-        body: value,
-      };
-      this.setState({
-        survey: {
-          ...this.state.survey,
-          questions: updatedQuestions,
-        },
-      });
-    }
-  };
-
-  /**
-   * @param {string} field The input type [question, choice]
-   * @param {number} question_id The id of the question being updated
-   * @param {number} choice_id The id of the choice being updated
-   */
-  onBlur = (field, question_id = -1, choice_id = -1) => {
-    // ###################      Survey Name     ###################
-    if (field === VALIDATION.survey_name) {
-      const { name } = this.state.survey;
-      // check valid length
-      if (name.length < VALIDATION.len.name.min) {
-        // less than min length
-        this.setState({
-          errors: {
-            ...this.state.errors,
-            name: `Survey Name should be ${
-              GE_SYMBOL + " " + VALIDATION.len.name.min
-            } characters!`,
-          },
-        });
-      } else if (name.length > VALIDATION.len.name.max) {
-        // greater than max length
-        this.setState({
-          errors: {
-            ...this.state.errors,
-            name: `Survey Name should be ${
-              LE_SYMBOL + " " + VALIDATION.len.name.max
-            } characters!`,
-          },
-        });
-      } else {
-        // valid name length
-        this.setState({ errors: { ...this.state.errors, name: "" } });
-      }
-    } else if (field === VALIDATION.question) {
-      // ###################    question body     ###################
-      const { body } = this.state.survey.questions[question_id];
-      let updatedQuestionErrors = [...this.state.errors.questions];
-      // check valid length
-      if (body.length < VALIDATION.len.question.min) {
-        // less than min length
-        updatedQuestionErrors[question_id] = {
-          ...this.state.errors.questions[question_id],
-          body: `Question should be ${
-            GE_SYMBOL + " " + VALIDATION.len.question.min
-          } characters!`,
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      } else if (body.length > VALIDATION.len.question.max) {
-        // greater than max length
-        updatedQuestionErrors[question_id] = {
-          ...this.state.errors.questions[question_id],
-          body: `Question should be ${
-            LE_SYMBOL + " " + VALIDATION.len.question.max
-          } characters!`,
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      } else {
-        // valid name length
-        updatedQuestionErrors[question_id] = {
-          ...this.state.errors.questions[question_id],
-          body: "",
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      }
-    } else if (field === VALIDATION.choice) {
-      // ###################    choice body     ###################
-      const { body } = this.state.survey.questions[question_id].choices[
-        choice_id
-      ];
-      let updatedQuestionErrors = [...this.state.errors.questions];
-      // check valid length
-      if (body.length < VALIDATION.len.choice.min) {
-        // less than min length
-        updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: `Choice should be ${
-            GE_SYMBOL + " " + VALIDATION.len.choice.min
-          } characters!`,
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      } else if (body.length > VALIDATION.len.choice.max) {
-        // greater than max length
-        updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: `Choice should be ${
-            LE_SYMBOL + " " + VALIDATION.len.choice.max
-          } characters!`,
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      } else {
-        // valid name length
-        updatedQuestionErrors[question_id].choices[choice_id] = {
-          body: "",
-        };
-        this.setQuestionErrors(updatedQuestionErrors);
-      }
-    }
-  };
-
-  setQuestionErrors = updatedQuestionErrors => {
-    this.setState({
-      errors: {
-        ...this.state.errors,
-        questions: updatedQuestionErrors,
-      },
-    });
-  };
-
-  /**
-   * @param {number} question_id The clicked question's id
-   */
-  addQuestion = question_id => {
-    // Insert the question in the index next to the passed question id
-    const updatedQuestions = [...this.state.survey.questions];
-    updatedQuestions.splice(question_id + 1, 0, {
-      body: "Question",
-      choices: [{ body: "Choice" }, { body: "Choice" }],
-    });
-
-    this.setState({
-      survey: {
-        ...this.state.survey,
-        questions: updatedQuestions,
-      },
-    });
-
-    // update question errors to track survey fields
-    const updatedQuestionErrors = [...this.state.errors.questions];
-    updatedQuestionErrors.splice(question_id + 1, 0, {
-      body: "",
-      choices: [{ body: "" }, { body: "" }],
-    });
-    this.setQuestionErrors(updatedQuestionErrors);
-  };
-
-  /**
-   * @param {number} question_id The clicked question's id
-   */
-  removeQuestion = question_id => {
-    // Remove the last question only if at least a single question exists
-    const { questions } = this.state.survey;
-    if (questions.length > 1) {
-      this.setState({
-        survey: {
-          ...this.state.survey,
-          questions: _.filter(questions, (question, index) =>
-            index === question_id ? false : true
-          ),
-        },
-      });
-
-      // update errors to track survey fields
-      const { errors } = this.state;
-      this.setState({
-        errors: {
-          ...this.state.errors,
-          questions: _.filter(errors.questions, (question_error, index) =>
-            index === question_id ? false : true
-          ),
-        },
-      });
-    }
-  };
-
-  /**
-   * @param {number} question_id The clicked question's id
-   * @param {number} choice_id The choice before the one to be added
-   */
-  addChoice = (question_id, choice_id) => {
-    // check that the # of choices is in the valid range 2 => 8
-    const { questions } = this.state.survey;
-    const updatedQuestions = _.map(questions, (question, index) => {
-      if (index === question_id) {
-        // for this question of this id, add one more options if valid
-        if (question.choices.length < MAX_CHOICES) {
-          // update errors to track survey fields
-          const updatedQuestionErrors = [...this.state.errors.questions];
-          updatedQuestionErrors[question_id]["choices"].splice(
-            choice_id + 1,
-            0,
-            {
-              body: "",
-            }
-          );
-          this.setState({
-            errors: {
-              ...this.state.errors,
-              questions: updatedQuestionErrors,
-            },
-          });
-
-          // if # of choices is less than 8, add one more
-          const updatedChoices = [...question.choices];
-          updatedChoices.splice(choice_id + 1, 0, { body: "choice" });
-          return {
-            ...question,
-            choices: updatedChoices,
-          };
-        } else {
-          // if cannot add more choices
-          return question;
-        }
-      } else {
-        // for other questions
-        return question;
-      }
-    });
-    this.setState({
-      survey: { ...this.state.survey, questions: updatedQuestions },
-    });
-  };
-
-  removeChoice = (question_id, choice_id) => {
-    // check that the # of choices is in the valid range 2 => 8
-    const { questions } = this.state.survey;
-    const updatedQuestions = _.map(questions, (question, index) => {
-      if (index === question_id) {
-        const { choices } = question;
-        // for this question of this id, remove the last options if valid
-        if (choices.length > MIN_CHOICES) {
-          // #### Update Errors ####
-          // update errors to track survey fields
-          const { errors } = this.state;
-          let updatedQuestionErrors = [...errors.questions];
-          let { choices: choiceErrors } = updatedQuestionErrors[question_id];
-          let updatedChoices = _.filter(choiceErrors, (choice, index) =>
-            index === choice_id ? false : true
-          );
-          updatedQuestionErrors[question_id].choices = updatedChoices;
-          this.setQuestionErrors(updatedQuestionErrors);
-
-          // #### Update Choices ####
-          // if # of choices is greater than 2, remove the last
-          return {
-            ...question,
-            choices: _.filter(choices, (choice, index) =>
-              index === choice_id ? false : true
-            ),
-          };
-        } else {
-          // if cannot add more choices
-          return question;
-        }
-      } else {
-        // for other questions
-        return question;
-      }
-    });
-    this.setState({
-      survey: { ...this.state.survey, questions: updatedQuestions },
-    });
   };
 
   // ############################################################
@@ -518,16 +181,13 @@ export default class Home extends Component {
   // ####################       Actions       ###################
   // ############################################################
   // ############################################################
-  /**
-   * @param {string} _userID The user ID who is sending the API request
-   */
-  postSurvey = _userID => {
+  postSurvey = () => {
     let { survey } = this.state;
     Axios.post(
       baseUrl + "addSurvey",
       {
         surveyUser: {
-          id: _userID,
+          id: helpers.getUserId(),
         },
         ...survey,
       },
@@ -541,24 +201,27 @@ export default class Home extends Component {
         // if correct response
         if (res.status === 200) {
           this.props.getSurveys();
-          // console.log(res);
+          console.log(res);
 
           // Redirect to show my surveys
           this.showSurveysToggle();
 
-          this.deactivateSpinner();
+          toast.success(messages.postSurvey.success);
         }
       })
       .catch(error => {
         console.error(error.response);
 
-        // deactivate spinner
-        this.deactivateSpinner();
+        toast.error(error.response.data);
 
         // handle general error
         if (!error.response) {
           this.props.handleGeneralError();
         }
+      })
+      .finally(() => {
+        // deactivate spinner
+        this.deactivateSpinner();
       });
   };
 
@@ -566,6 +229,7 @@ export default class Home extends Component {
    * @param {surveyId} surveyId The id of the survey to be deleted
    */
   deleteSurvey = surveyId => {
+    // console.log(surveyId);
     Axios.delete(baseUrl + "deleteSurvey", {
       params: {
         surveyId: surveyId,
@@ -576,11 +240,18 @@ export default class Home extends Component {
     })
       .then(response => {
         if (response.status === 200) {
+          toast.success(messages.deleteSurvey.success);
+
+          // update the surveys
+          this.props.getSurveys();
         }
-        //TODO error handling
       })
       .catch(error => {
         console.error(error.response);
+        toast.error(error.response);
+      })
+      .finally(() => {
+        this.deactivateSpinner();
       });
   };
 
@@ -596,13 +267,15 @@ export default class Home extends Component {
           survey_object,
           survey_count,
           this.deleteSurvey,
-          this.props.setSurveyErrors
+          this.props.setSurveyErrors,
+          this.props.setSurveyBeingEdited
         )
       )
     );
     return (
       <Col className="col-sm-6 offset-sm-3">
         <div className="text-center mb-4">
+          <ToastContainer />
           <Button onClick={this.showSurveysToggle} color="primary">
             Show My Surveys
           </Button>

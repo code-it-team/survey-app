@@ -5,11 +5,13 @@ import _ from "lodash";
 import React, { Component } from "react";
 import { Fade } from "react-animation-components";
 import { Redirect, Route, Switch, withRouter } from "react-router-dom";
-import { Spinner } from "reactstrap";
+import { toast, ToastContainer } from "react-toastify";
 import { baseUrl } from "../shared/baseUrl";
 import { MINLEN } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
-import * as ROUTES from "../shared/routes";
+import * as messages from "../shared/messages";
+import * as routers from "../shared/routes";
+import * as actions from "../state/actions";
 import AuthRoute from "./AuthRoute";
 import Footer from "./Footer";
 import GeneralError from "./GeneralError";
@@ -36,10 +38,14 @@ export const INITIAL_STATE = {
     login: null,
     signup: null,
     question: null,
-    survey: {},
+    // Survey Being edited
+    name: "",
+    questions: [],
+    edit_survey: "",
   },
   spinner: <></>,
   surveys: [], // list of all surveys
+  survey: {}, // the survey to be edited
 };
 
 class Main extends Component {
@@ -49,6 +55,17 @@ class Main extends Component {
   constructor(props) {
     super(props);
     this.state = INITIAL_STATE;
+
+    // binding
+    this.activateSpinner = actions.activateSpinner.bind(this);
+    this.deactivateSpinner = actions.deactivateSpinner.bind(this);
+    this.addChoice = actions.addChoice.bind(this);
+    this.removeChoice = actions.removeChoice.bind(this);
+    this.addQuestion = actions.addQuestion.bind(this);
+    this.removeQuestion = actions.removeQuestion.bind(this);
+    this.onBlurSurvey = actions.onBlur.bind(this);
+    this.onChangeSurvey = actions.onChange.bind(this);
+    this.setQuestionErrors = actions.setQuestionErrors.bind(this);
   }
 
   // ############################################################
@@ -81,11 +98,15 @@ class Main extends Component {
   // ############################################################
   // ############################################################
   // <<<<<<<<<<<<<<<<<<<<       General       >>>>>>>>>>>>>>>>>>>
+  setSurveyBeingEdited = survey_id => {
+    this.setState({ survey: this.state.surveys[survey_id] });
+  };
+
   setSurveyErrors = id => {
     // Mirror Survey structure to errors
     let errors = {
       ...this.state.errors,
-      survey: helpers.mirrorErrors(this.state.surveys[id]),
+      questions: helpers.mirrorQuestionErrors(this.state.surveys[id]),
     };
     this.setState({
       errors: errors,
@@ -98,7 +119,7 @@ class Main extends Component {
   };
 
   handleGeneralError = () => {
-    return this.props.history.push(ROUTES.GENERAL_ERROR);
+    return this.props.history.push(routers.GENERAL_ERROR);
   };
 
   /** Set state to input values
@@ -116,33 +137,18 @@ class Main extends Component {
     this.setState({ fields: { ...this.state.fields, [name]: value } });
   };
 
-  activateSpinner = () => {
-    // if any error exists do not load the spinner
-    this.setState({
-      spinner: (
-        <Spinner color="primary" style={{ width: "20px", height: "20px" }} />
-      ),
-    });
-  };
-
-  deactivateSpinner = () => {
-    this.setState({
-      spinner: <></>,
-    });
-  };
-
   // Redirect to Signup page
   signupRedirect = () => {
     // reset state
     this.resetState();
-    this.props.history.push(ROUTES.SIGNUP);
+    this.props.history.push(routers.SIGNUP);
   };
 
   // Redirect to Login page
   loginRedirect = () => {
     // reset state
     this.resetState();
-    this.props.history.push(ROUTES.LOGIN);
+    this.props.history.push(routers.LOGIN);
   };
 
   /** Validate input rules on blur
@@ -150,12 +156,7 @@ class Main extends Component {
    */
   onBlur = field => {
     // destructor
-    const {
-      username,
-      password,
-      password_confirm,
-      survey_name,
-    } = this.state.fields;
+    const { username, password, password_confirm } = this.state.fields;
     // on Blur apply validations
 
     // ===================      Username       ===================
@@ -287,6 +288,51 @@ class Main extends Component {
     }
   };
 
+  // <<<<<<<<<<<<<<<<<<<<       Survey       >>>>>>>>>>>>>>>>>>>>
+  onSurveyEditSubmit = event => {
+    event.preventDefault();
+    // Check if form is valid
+    let isErrorsFree = helpers.isValid(this.state.errors, helpers.checker);
+    let isAllFieldsFilled = helpers.isValid(
+      this.state.survey,
+      helpers.checker,
+      false
+    );
+
+    // If any empty field exists, set an error message
+    if (!isAllFieldsFilled) {
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          edit_survey: `* Fill in all the fields before submitting, please!`,
+        },
+      });
+
+      // Deactivate Spinner
+      this.deactivateSpinner();
+      return;
+    }
+
+    // If errors exist
+    if (!isErrorsFree) {
+      this.setState({
+        errors: {
+          ...this.state.errors,
+          post_survey: `* Fix the above issues, please!`,
+        },
+      });
+
+      // Deactivate Spinner
+      this.deactivateSpinner();
+      return;
+    }
+
+    // if valid, send the API request
+    this.editSurvey();
+
+    // reset state
+  };
+
   // ############################################################
   // ############################################################
   // ####################       Actions       ###################
@@ -315,24 +361,21 @@ class Main extends Component {
           // console.log(res);
           this.setState({
             jwt: res.data.jwt,
-            fields: { ...this.state.fields, id: res.data.surveyUserDTO.id },
+            fields: { ...this.state.fields, id: res.data.surveyUser.id },
           });
           localStorage.setItem("jwt", res.data.jwt);
           localStorage.setItem("username", this.state.fields.username);
           localStorage.setItem("id", this.state.fields.id.toString());
-          this.deactivateSpinner();
-          this.props.history.push(ROUTES.HOME);
+
+          this.props.history.push(routers.HOME);
         }
       })
       .catch(error => {
-        console.log(error.response);
-
-        // deactivate spinner
-        this.deactivateSpinner();
+        console.log(error);
 
         // handle general error
         if (!error.response) {
-          return this.props.history.push(ROUTES.GENERAL_ERROR);
+          return this.props.history.push(routers.GENERAL_ERROR);
         }
 
         // handling
@@ -344,6 +387,10 @@ class Main extends Component {
             },
           });
         }
+      })
+      .finally(() => {
+        // deactivate spinner
+        this.deactivateSpinner();
       });
   };
 
@@ -354,7 +401,7 @@ class Main extends Component {
   logout = () => {
     this.resetState();
     localStorage.clear();
-    this.props.history.push(ROUTES.LOGIN);
+    this.props.history.push(routers.LOGIN);
   };
 
   // <<<<<<<<<<<<<<<<<<<<<       Signup       >>>>>>>>>>>>>>>>>>>
@@ -376,7 +423,7 @@ class Main extends Component {
         // if user added successfully, redirect to login page and
         // fill in the credentials
         if (res.status === 200) {
-          this.props.history.push(ROUTES.LOGIN);
+          this.props.history.push(routers.LOGIN);
 
           // deactivate spinner
           this.deactivateSpinner();
@@ -390,7 +437,7 @@ class Main extends Component {
 
         // handle general error
         if (!error.response) {
-          return this.props.history.push(ROUTES.GENERAL_ERROR);
+          return this.props.history.push(routers.GENERAL_ERROR);
         }
 
         // resolve 409 error which means duplicate username
@@ -421,7 +468,7 @@ class Main extends Component {
         if (res.status === 200) {
           // console.log(res);
 
-          this.setState({ surveys: res.data.surveyDTOS });
+          this.setState({ surveys: res.data.surveys });
           helpers.persistSurveys(res.data.surveyDTOS);
 
           // save to locale storage
@@ -433,13 +480,45 @@ class Main extends Component {
 
         // handle general error
         if (!error.response) {
-          return this.props.history.push(ROUTES.GENERAL_ERROR);
+          return this.props.history.push(routers.GENERAL_ERROR);
         }
       });
   };
 
-  addQuestion = question_id => {
-    
+  editSurvey = () => {
+    Axios.put(
+      baseUrl + "updateSurvey",
+      {
+        id: this.state.survey.id,
+        name: this.state.survey.name,
+        questions: this.state.survey.questions,
+      },
+      {
+        headers: {
+          Authorization: helpers.getJWT(),
+        },
+      }
+    )
+      .then(response => {
+        if (response.status === 200) {
+          // success
+          toast.success(messages.editSurvey.success);
+        }
+      })
+      .catch(error => {
+        console.error(error.response);
+
+        toast.error(error.response.data);
+
+        // handle general error
+        if (!error.response) {
+          return this.props.history.push(routers.GENERAL_ERROR);
+        }
+      })
+      .finally(() =>
+        // Deactivate Spinner
+        this.deactivateSpinner()
+      );
   };
 
   // ############################################################
@@ -447,6 +526,10 @@ class Main extends Component {
   // ################       Pages Rendering       ###############
   // ############################################################
   // ############################################################
+  redirectToHome = () => {
+    return this.props.history.push(routers.HOME);
+  };
+
   loginPage = () => {
     return (
       <Login
@@ -475,26 +558,34 @@ class Main extends Component {
     );
   };
 
-  surveyPage = () => {
+  homePage = () => {
     return (
       <Home
         getSurveys={this.getSurveys}
         surveys={this.state.surveys}
         handleGeneralError={this.handleGeneralError}
         setSurveyErrors={this.setSurveyErrors}
+        setSurveyBeingEdited={this.setSurveyBeingEdited}
       />
     );
   };
 
-  surveyDetailsPage = ({ match }) => {
-    const matchedId = +match.params.id;
+  surveyDetailsPage = () => {
     return (
       <SurveyDetails
-        survey={helpers.getPersistentSurveys()[matchedId]}
-        errors={helpers.getPersistentErrors().survey}
+        survey={this.state.survey}
+        errors={this.state.errors}
         isEdit={true}
         spinner={this.state.spinner}
         activateSpinner={this.activateSpinner}
+        addChoice={this.addChoice}
+        removeChoice={this.removeChoice}
+        addQuestion={this.addQuestion}
+        removeQuestion={this.removeQuestion}
+        onBlur={this.onBlurSurvey}
+        onChange={this.onChangeSurvey}
+        onSubmit={this.onSurveyEditSubmit}
+        redirectToHome={this.redirectToHome}
       />
     );
   };
@@ -512,22 +603,23 @@ class Main extends Component {
             <AuthRoute
               exact
               isAuthenticated={helpers.isAuth()}
-              path={ROUTES.HOME}
-              component={this.surveyPage}
+              path={routers.HOME}
+              component={this.homePage}
               logout={this.logout}
             />
             <AuthRoute
               isAuthenticated={helpers.isAuth()}
-              path={ROUTES.SURVEY_DETAILS}
+              path={routers.SURVEY_DETAILS}
               component={this.surveyDetailsPage}
               logout={this.logout}
             />
-            <Route path={ROUTES.LOGIN} component={this.loginPage} />
-            <Route path={ROUTES.SIGNUP} component={this.signupPage} />
-            <Route path={ROUTES.GENERAL_ERROR} component={GeneralError} />
-            <Redirect to={ROUTES.HOME} />
+            <Route path={routers.LOGIN} component={this.loginPage} />
+            <Route path={routers.SIGNUP} component={this.signupPage} />
+            <Route path={routers.GENERAL_ERROR} component={GeneralError} />
+            <Redirect to={routers.HOME} />
           </Switch>
           <Footer />
+          <ToastContainer />
         </React.Fragment>
       </Fade>
     );

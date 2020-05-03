@@ -1,9 +1,17 @@
 import _ from "lodash";
 import React from "react";
-import { Button, Col, Form, FormFeedback, FormGroup, Input, Label } from "reactstrap";
+import {
+  Button,
+  Col,
+  Form,
+  FormFeedback,
+  FormGroup,
+  Input,
+  Label,
+} from "reactstrap";
 import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
-import * as VALIDATION from "../shared/validation";
+import * as validation from "../shared/validation";
 import Question from "./Question";
 
 export default function SurveyDetails({
@@ -18,10 +26,18 @@ export default function SurveyDetails({
   removeChoice,
   spinner,
   activateSpinner,
+  redirectToHome,
   isEdit = false,
 }) {
   let surveyForm = (
     <Form name="surveyDetails" onSubmit={onSubmit}>
+      {isEdit ? (
+        <FormGroup>
+          <Button color="primary" type="button" onClick={redirectToHome}>
+            Back to Home
+          </Button>
+        </FormGroup>
+      ) : null}
       <FormGroup>
         <Label htmlFor="survey-name" className="font-weight-bold">
           SURVEY NAME
@@ -32,8 +48,8 @@ export default function SurveyDetails({
           id="survey-name"
           placeholder="Survey Name"
           value={survey.name}
-          onChange={event => onChange(event, VALIDATION.survey_name)}
-          onBlur={() => onBlur(VALIDATION.survey_name)}
+          onChange={event => onChange(event, validation.survey_name)}
+          onBlur={() => onBlur(validation.survey_name)}
           invalid={errors.name !== ""}
         />
         <FormFeedback>{helpers.renderInnerHTML(errors.name)}</FormFeedback>
@@ -43,23 +59,20 @@ export default function SurveyDetails({
           QUESTIONS:
         </Label>
         <ol>
-          {_.map(
-            isEdit ? survey.questionDTOs : survey.questions,
-            (question, question_id) => (
-              <Question
-                addChoice={addChoice}
-                addQuestion={addQuestion}
-                errors={errors}
-                question_id={question_id}
-                key={question_id}
-                onBlur={onBlur}
-                onChange={onChange}
-                question={question}
-                removeChoice={removeChoice}
-                removeQuestion={removeQuestion}
-              />
-            )
-          )}
+          {_.map(survey.questions, (question, question_id) => (
+            <Question
+              addChoice={addChoice}
+              addQuestion={addQuestion}
+              errors={errors}
+              question_id={question_id}
+              key={question_id}
+              onBlur={onBlur}
+              onChange={onChange}
+              question={question}
+              removeChoice={removeChoice}
+              removeQuestion={removeQuestion}
+            />
+          ))}
         </ol>
       </div>
 

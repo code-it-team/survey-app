@@ -49,13 +49,10 @@ export const checker = (collection, empty = true) => {
 };
 
 // Used to mirror the errors object to have the same structure as survey does to follow up
-export const mirrorErrors = survey => {
-  let errors = {
-    name: "",
-    questions: [],
-  };
+export const mirrorQuestionErrors = survey => {
+  let questions = [];
   // add N questions
-  _.each(survey.questionDTOs, question => {
+  _.each(survey.questions, question => {
     let question_errors = {
       body: "",
       choices: [],
@@ -64,7 +61,42 @@ export const mirrorErrors = survey => {
     _.each(question.choices, choices => {
       question_errors.choices.push({ body: "" });
     });
-    errors.questions.push(question_errors);
+    questions.push(question_errors);
   });
-  return errors;
+  return questions;
+};
+
+/**
+ * @param {object} collection The collection to be checked
+ * @param {Function} checker Callback to check against each element
+ * @param {boolean} empty The condition to be checked against the elements
+ * of the collection. If `true` => the object value should be empty,
+ * `false` => should not be empty
+ * @returns `false` if any error exists otherwise, `true`
+ */
+export const isValid = (collection, checker, empty = true) => {
+  // check survey name
+  let name = true;
+  if (empty) name = collection.name === "" ? true : false;
+  else name = collection.name === "" ? false : true;
+  if (!name) return false;
+
+  // check questions if any error exists, return false
+  let questions = true;
+  if (empty) questions = checker(collection.questions);
+  else questions = checker(collection.questions, false);
+  if (!questions) return false;
+
+  // check choices
+  let choices = true;
+  _.each(collection.questions, item => {
+    let _choices = true;
+    if (empty) _choices = checker(item.choices);
+    else _choices = checker(item.choices, false);
+    if (!_choices) {
+      choices = false;
+      return;
+    }
+  });
+  return choices;
 };
