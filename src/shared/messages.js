@@ -9,3 +9,7 @@ export const deleteSurvey = {
 export const editSurvey = {
   success: "The survey has been edited successfully!",
 };
+
+export const publishSurvey = {
+  success: "The survey has been publish successfully!",
+};

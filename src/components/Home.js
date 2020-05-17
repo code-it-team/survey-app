@@ -3,9 +3,11 @@ import Axios from "axios";
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React, { Component } from "react";
+import Tab from "react-bootstrap/Tab";
+import Tabs from "react-bootstrap/Tabs";
 import { Link } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import { Button, Col, Collapse, Table, UncontrolledTooltip } from "reactstrap";
+import { toast } from "react-toastify";
+import { Button, Col, Table, UncontrolledTooltip } from "reactstrap";
 import { baseUrl } from "../shared/baseUrl";
 import { INITIAL_ERRORS, INITIAL_SURVEY } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
@@ -37,8 +39,8 @@ const renderTableRow = (
 ) => {
   const { name } = survey_object;
   return (
-    <tr key={survey_count} className="align-middle">
-      <th scope="row">{survey_count + 1}</th>
+    <tr key={survey_count}>
+      <th scope="row">{survey_count}</th>
       <td>
         {
           <Link
@@ -53,7 +55,11 @@ const renderTableRow = (
         }
       </td>
       <td>
-        <Button outline onClick={() => deleteSurvey(survey_object.id)} color="danger">
+        <Button
+          outline
+          onClick={() => deleteSurvey(survey_object.id)}
+          color="danger"
+        >
           <i className="fa fa-trash-o" id="delete-survey"></i>
           <UncontrolledTooltip placeholder="top" target="delete-survey">
             delete the survey
@@ -71,8 +77,7 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      isShowSurveysOpen: true,
-      isAddSurveyOpen: false,
+      activeTab: "1",
       survey: INITIAL_SURVEY,
       errors: INITIAL_ERRORS,
       spinner: <></>,
@@ -107,15 +112,12 @@ export default class Home extends Component {
   // ################       Event Handlers       ################
   // ############################################################
   // ############################################################
-  resetSurvey = () => {
-    this.setState({ survey: INITIAL_SURVEY, errors: INITIAL_ERRORS });
+  toggle = tab => {
+    if (this.state.activeTab !== tab) this.setState({ activeTab: tab });
   };
 
-  showSurveysToggle = () => {
-    this.setState({
-      isShowSurveysOpen: !this.state.isShowSurveysOpen,
-      isAddSurveyOpen: false,
-    });
+  resetSurvey = () => {
+    this.setState({ survey: INITIAL_SURVEY, errors: INITIAL_ERRORS });
   };
 
   addSurveyToggle = () => {
@@ -204,7 +206,7 @@ export default class Home extends Component {
           console.log(res);
 
           // Redirect to show my surveys
-          this.showSurveysToggle();
+          this.toggle("1");
 
           toast.success(messages.postSurvey.success);
         }
@@ -261,77 +263,102 @@ export default class Home extends Component {
   // ############################################################
   // ############################################################
   render() {
-    const renderSurveys = _.reverse(
-      _.map(this.props.surveys, (survey_object, survey_count) =>
-        renderTableRow(
-          survey_object,
-          survey_count,
-          this.deleteSurvey,
-          this.props.setSurveyErrors,
-          this.props.setSurveyBeingEdited
-        )
-      )
+    let survey_count = 0;
+    const renderDraftSurveys = _.reverse(
+      _.map(this.props.surveys, survey_object => {
+        if (!survey_object.published) {
+          survey_count += 1;
+          return renderTableRow(
+            survey_object,
+            survey_count,
+            this.deleteSurvey,
+            this.props.setSurveyErrors,
+            this.props.setSurveyBeingEdited
+          );
+        }
+      })
     );
+
+    survey_count = 0;
+    const renderPublishedSurveys = _.reverse(
+      _.map(this.props.surveys, survey_object => {
+        if (survey_object.published) {
+          survey_count += 1;
+          return renderTableRow(
+            survey_object,
+            survey_count,
+            this.deleteSurvey,
+            this.props.setSurveyErrors,
+            this.props.setSurveyBeingEdited
+          );
+        }
+      })
+    );
+
     return (
-      <Col className="col-sm-6 offset-sm-3">
-        <div className="text-center mb-4">
-          <ToastContainer />
-          <Button onClick={this.showSurveysToggle} color="primary">
-            Show My Surveys
-          </Button>
-          <Button
-            className="m-4"
-            color="success"
-            onClick={() => this.addSurveyToggle()}
-            id="add-survey"
+      <Col className="col-lg-6 offset-lg-3">
+        <div className="mb-4 nav-justified home">
+          <Tabs
+            activeKey={this.state.activeTab}
+            onSelect={k => this.toggle(k)}
+            className="mb-5"
           >
-            <i className="fa fa-plus"></i>
-            <UncontrolledTooltip
-              placeholder="top"
-              target="add-survey"
-              trigger="hover focus"
-            >
-              Add new survey
-            </UncontrolledTooltip>
-          </Button>
+            <Tab eventKey="1" title="Draft Surveys">
+              {/* <<<<<<<<<<<<<<<<<<<<<       Render Surveys       >>>>>>>>>>>>>>>>>>>> */}
+              <Table
+                responsive
+                hover
+                borderless
+                className="table"
+                id="table-toggler"
+              >
+                <thead>
+                  <tr>
+                    <th width="5">#</th>
+                    <th>Survey</th>
+                    <th width="5"></th>
+                  </tr>
+                </thead>
+                <tbody>{renderDraftSurveys}</tbody>
+              </Table>
+            </Tab>
+            <Tab eventKey="2" title="Published Surveys">
+              <Table
+                responsive
+                hover
+                borderless
+                className="table"
+                id="table-toggler"
+              >
+                <thead>
+                  <tr>
+                    <th width="5">#</th>
+                    <th>Survey</th>
+                    <th width="5"></th>
+                  </tr>
+                </thead>
+                <tbody>{renderPublishedSurveys}</tbody>
+              </Table>
+            </Tab>
+            <Tab eventKey="3" title="Add Surveys">
+              {/* <<<<<<<<<<<<<<<<<<<<<       Add New Survey       >>>>>>>>>>>>>>>>>>>> */}
+              <SurveyDetails
+                activateSpinner={this.activateSpinner}
+                addChoice={this.addChoice}
+                removeChoice={this.removeChoice}
+                addQuestion={this.addQuestion}
+                removeQuestion={this.removeQuestion}
+                errors={this.state.errors}
+                onBlur={this.onBlur}
+                onChange={this.onChange}
+                onSubmit={this.onSubmit}
+                spinner={this.state.spinner}
+                survey={this.state.survey}
+                publishSurvey={this.props.publishSurvey}
+              />
+            </Tab>
+          </Tabs>
         </div>
-
-        {/* <<<<<<<<<<<<<<<<<<<<<       Render Surveys       >>>>>>>>>>>>>>>>>>>> */}
-        <Collapse isOpen={this.state.isShowSurveysOpen}>
-          <Table
-            responsive
-            hover
-            borderless
-            className="table"
-            id="table-toggler"
-          >
-            <thead>
-              <tr>
-                <th width="5">#</th>
-                <th>Survey</th>
-                <th width="5"></th>
-              </tr>
-            </thead>
-            <tbody>{renderSurveys}</tbody>
-          </Table>
-        </Collapse>
-
-        {/* <<<<<<<<<<<<<<<<<<<<<       Add New Survey       >>>>>>>>>>>>>>>>>>>> */}
-        <Collapse isOpen={this.state.isAddSurveyOpen}>
-          <SurveyDetails
-            activateSpinner={this.activateSpinner}
-            addChoice={this.addChoice}
-            removeChoice={this.removeChoice}
-            addQuestion={this.addQuestion}
-            removeQuestion={this.removeQuestion}
-            errors={this.state.errors}
-            onBlur={this.onBlur}
-            onChange={this.onChange}
-            onSubmit={this.onSubmit}
-            spinner={this.state.spinner}
-            survey={this.state.survey}
-          />
-        </Collapse>
       </Col>
     );
   }

@@ -13,6 +13,8 @@ import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as validation from "../shared/validation";
 import Question from "./Question";
+import { confirmAlert } from "react-confirm-alert"; // Import
+import "react-confirm-alert/src/react-confirm-alert.css"; // Import css
 
 export default function SurveyDetails({
   onSubmit,
@@ -27,10 +29,31 @@ export default function SurveyDetails({
   spinner,
   activateSpinner,
   redirectToHome,
+  publishSurvey,
   isEdit = false,
 }) {
+  const handlePublish = () => {
+    confirmAlert({
+      title: "Confirm to Publish",
+      message:
+        "After you publish a survey, you cannot edit it. Do you want to publish?",
+      buttons: [
+        {
+          label: "Yes",
+          onClick: () => {
+            publishSurvey();
+          },
+        },
+        {
+          label: "No",
+          onClick: () => {},
+        },
+      ],
+    });
+  };
+
   let surveyForm = (
-    <Form name="surveyDetails" onSubmit={onSubmit}>
+    <Form name="surveyDetails" onSubmit={onSubmit} className="mx-3">
       {isEdit ? (
         <FormGroup>
           <Button color="primary" type="button" onClick={redirectToHome}>
@@ -38,6 +61,11 @@ export default function SurveyDetails({
           </Button>
         </FormGroup>
       ) : null}
+      <FormGroup>
+        <Button color="success" type="button" onClick={handlePublish}>
+          Publish
+        </Button>
+      </FormGroup>
       <FormGroup>
         <Label htmlFor="survey-name" className="font-weight-bold">
           SURVEY NAME
