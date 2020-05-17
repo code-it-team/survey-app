@@ -21,7 +21,7 @@ import Signup from "./Signup";
 import SurveyDetails from "./SurveyDetails";
 
 // #############################    State   #############################
-export const INITIAL_STATE = {
+const INITIAL_STATE = {
   jwt: "",
   fields: {
     id: 0,
@@ -521,6 +521,38 @@ class Main extends Component {
       );
   };
 
+  publishSurvey = () => {
+    Axios.put(
+      baseUrl + "publishSurvey",
+      {},
+      {
+        headers: {
+          Authorization: helpers.getJWT(),
+        },
+        params: {
+          surveyId: this.state.survey.id,
+        },
+      }
+    )
+      .then(res => {
+        // success
+        toast.success(messages.publishSurvey.success);
+      })
+      .catch(error => {
+        console.error(error.response);
+
+        toast.error(error.response.data);
+
+        // handle general error
+        if (!error.response) {
+          return this.props.history.push(routers.GENERAL_ERROR);
+        }
+      })
+      .finally(() => {
+        this.redirectToHome();
+      });
+  };
+
   // ############################################################
   // ############################################################
   // ################       Pages Rendering       ###############
@@ -586,6 +618,7 @@ class Main extends Component {
         onChange={this.onChangeSurvey}
         onSubmit={this.onSurveyEditSubmit}
         redirectToHome={this.redirectToHome}
+        publishSurvey={this.publishSurvey}
       />
     );
   };
