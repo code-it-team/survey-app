@@ -624,8 +624,9 @@ class Main extends Component {
     );
   };
 
-  surveySubmitPage = () => {
-    return <SurveySubmit />;
+  surveySubmitPage = ({ match }) => {
+    const surveyId = parseInt(match.params.id, 10);
+    return <SurveySubmit surveyId={surveyId} />;
   };
 
   // ############################################################
@@ -655,7 +656,7 @@ class Main extends Component {
             <Route path={routers.SIGNUP} component={this.signupPage} />
             <Route path={routers.GENERAL_ERROR} component={GeneralError} />
             <Route
-              path={`${routers.SURVEY_SUBMIT}/*`}
+              path={routers.SURVEY_SUBMIT}
               component={this.surveySubmitPage}
             />
             <Redirect to={routers.HOME} />

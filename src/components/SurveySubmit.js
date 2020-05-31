@@ -1,49 +1,117 @@
+import Axios from "axios";
 import _ from "lodash";
 import React, { Component } from "react";
-import { Button, Container, Form, FormGroup, Input, Label, Row } from "reactstrap";
+import { withRouter } from "react-router-dom";
+import {
+  Button,
+  Container,
+  Form,
+  FormGroup,
+  Input,
+  Label,
+  Row,
+} from "reactstrap";
+import { baseUrl } from "../shared/baseUrl";
 import { QUESTION_COLOR_TEXT } from "../shared/globals";
+import * as routers from "../shared/routes";
+import { question } from "../shared/validation";
 
-export default class SurveySubmit extends Component {
-  /**
-   * @param {object} props
-   * @param {object} props.survey
-   * @param {number} props.survey.id
-   * @param {string} props.survey.name
-   * @param {boolean} props.survey.published
-   * @param {object[]} props.survey.questions
-   * @param {number} props.survey.questions[].id
-   * @param {string} props.survey.questions[].body The question body
-   * @param {object[]} props.survey.questions[].choices The question choices
-   * @param {object} props.survey.questions[].choices[]
-   * @param {number} props.survey.questions[].choices[].id
-   * @param {string} props.survey.questions[].choices[].body
-   */
+/**
+ * @typedef {object} props
+ * @property {number} surveyId
+ * @extends {Component<props>}
+ *
+ * @typedef {object} state
+ * @property {object} survey
+ * @property {number} survey.id
+ * @property {string} survey.name
+ * @property {boolean} survey.published
+ * @property {object[]} survey.questions
+ * @property {number} survey.questions[].id
+ * @property {string} survey.questions[].body The question body
+ * @property {object[]} survey.questions[].choices The question choices
+ * @property {object} survey.questions[].choices[]
+ * @property {number} survey.questions[].choices[].id
+ * @property {string} survey.questions[].choices[].body
+ */
+
+class SurveySubmit extends Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    /** @type {state} */
+    this.state = {
+      survey: {},
+    };
   }
 
+  // ######################   API Calls   ######################
+  /**
+   * @param {number} surveyId The survey id
+   */
+  getSurveyById = surveyId => {
+    Axios.get(baseUrl + "survey", {
+      params: {
+        surveyId: parseInt(surveyId),
+      },
+    })
+      .then(res => {
+        // Correct response
+        if (res.status === 200) {
+          // update the state
+          this.setState({ survey: res.data });
+        }
+      })
+      .catch(err => {
+        console.error(err);
+
+        // handle general error
+        if (!err.response) {
+          return this.props.history.push(routers.GENERAL_ERROR);
+        }
+      });
+  };
+
+  // ##################   Lifecycle methods   ##################
+  componentDidMount() {
+    this.getSurveyById(this.props.surveyId);
+  }
+
+  // ####################   Main Component   ####################
+
   render() {
-    const { survey } = this.props;
+    const { survey } = this.state;
     return (
-      <Container>
+      <Container style={{ marginTop: "8rem" }}>
         <Row md={8} className="offset-md-2">
           <Form name="surveySubmit" className="mx-3">
             <FormGroup>
-              <Label htmlFor="survey-name" className="font-weight-bold">
-                SURVEY NAME
+              <Label
+                htmlFor="survey-name"
+                className="font-weight-bold text-danger"
+              >
+                {survey.name}
               </Label>
             </FormGroup>
             <div className="mt-4">
-              <Label className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}>
-                QUESTIONS:
-              </Label>
               {_.map(survey.questions, (question, question_id) => {
                 return (
-                  <FormGroup>
-                    <Input type="select" name={`question_${question_id}`}>
+                  <FormGroup key={question_id}>
+                    <Label
+                      className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}
+                    >
+                      {question.body}
+                    </Label>
+                    <Input
+                      type="select"
+                      name={`question_${question_id}`}
+                      required
+                    >
                       {_.map(question.choices, (choice, choice_id) => {
-                        return <option>{choice}</option>;
+                        return (
+                          <option name={`choice_${choice_id}`} key={choice_id}>
+                            {choice.body}
+                          </option>
+                        );
                       })}
                     </Input>
                   </FormGroup>
@@ -61,3 +129,5 @@ export default class SurveySubmit extends Component {
     );
   }
 }
+
+export default withRouter(SurveySubmit);

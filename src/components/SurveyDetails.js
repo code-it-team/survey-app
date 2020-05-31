@@ -118,7 +118,7 @@ export default function SurveyDetails({
       {publishButton()}
       <FormGroup>
         <Label htmlFor="survey-name" className="font-weight-bold">
-          SURVEY NAME
+          Survey Name
         </Label>
         <Input
           type="text"
@@ -134,7 +134,7 @@ export default function SurveyDetails({
       </FormGroup>
       <div className="mt-4">
         <Label className={`font-weight-bold ${QUESTION_COLOR_TEXT}`}>
-          QUESTIONS:
+          Questions:
         </Label>
         <ol>
           {_.map(survey.questions, (question, question_id) => (
