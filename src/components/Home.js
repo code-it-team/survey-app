@@ -28,26 +28,27 @@ import SurveyDetails from "./SurveyDetails";
 // ############################################################
 /**
  * @param {object} survey_object
- * @param {number} survey_count
+ * @param {number} survey_index
  */
 const renderTableRow = (
   survey_object,
-  survey_count,
+  survey_index,
+  survey_index_total,
   deleteSurvey,
   setSurveyErrors,
   setSurveyBeingEdited
 ) => {
   const { name } = survey_object;
   return (
-    <tr key={survey_count}>
-      <th scope="row">{survey_count}</th>
+    <tr key={survey_index}>
+      <th scope="row">{survey_index}</th>
       <td>
         {
           <Link
-            to={`/surveys/${survey_count}`}
+            to={`/surveys/${survey_index_total}`}
             onClick={() => {
-              setSurveyBeingEdited(survey_count);
-              setSurveyErrors(survey_count);
+              setSurveyBeingEdited(survey_index_total);
+              setSurveyErrors(survey_index_total);
             }}
           >
             {name}
@@ -192,6 +193,7 @@ export default class Home extends Component {
           id: helpers.getUserId(),
         },
         ...survey,
+        published: false,
       },
       {
         headers: {
@@ -263,14 +265,17 @@ export default class Home extends Component {
   // ############################################################
   // ############################################################
   render() {
-    let survey_count = 0;
+    let draft_survey_index = 0;
+    let survey_index_total = -1;
     const renderDraftSurveys = _.reverse(
       _.map(this.props.surveys, survey_object => {
+        survey_index_total += 1;
         if (!survey_object.published) {
-          survey_count += 1;
+          draft_survey_index += 1;
           return renderTableRow(
             survey_object,
-            survey_count,
+            draft_survey_index,
+            survey_index_total,
             this.deleteSurvey,
             this.props.setSurveyErrors,
             this.props.setSurveyBeingEdited
@@ -279,14 +284,17 @@ export default class Home extends Component {
       })
     );
 
-    survey_count = 0;
+    let published_survey_index = 0;
+    survey_index_total = -1;
     const renderPublishedSurveys = _.reverse(
       _.map(this.props.surveys, survey_object => {
+        survey_index_total += 1;
         if (survey_object.published) {
-          survey_count += 1;
+          published_survey_index += 1;
           return renderTableRow(
             survey_object,
-            survey_count,
+            published_survey_index,
+            survey_index_total,
             this.deleteSurvey,
             this.props.setSurveyErrors,
             this.props.setSurveyBeingEdited
@@ -296,7 +304,7 @@ export default class Home extends Component {
     );
 
     return (
-      <Col className="col-lg-6 offset-lg-3">
+      <Col className="col-md-8 offset-md-2">
         <div className="mb-4 nav-justified home">
           <Tabs
             activeKey={this.state.activeTab}
@@ -323,13 +331,7 @@ export default class Home extends Component {
               </Table>
             </Tab>
             <Tab eventKey="2" title="Published Surveys">
-              <Table
-                responsive
-                hover
-                borderless
-                className="table"
-                id="table-toggler"
-              >
+              <Table responsive borderless className="table" id="table-toggler">
                 <thead>
                   <tr>
                     <th width="5">#</th>

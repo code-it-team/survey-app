@@ -1,4 +1,3 @@
-
 export const MINLEN = 3;
 export const MAXLEN = 50;
 
@@ -15,13 +14,13 @@ export const INITIAL_SURVEY = {
       choices: [{ body: "choice" }, { body: "choice" }],
     },
   ],
+  published: null,
 };
 
 export const MIN_CHOICES = 2;
 export const MAX_CHOICES = 8;
 export const LE_SYMBOL = "\u2264";
 export const GE_SYMBOL = "\u2265";
-
 
 // ###########################    Errors   ##############################
 export const INITIAL_ERRORS = {

@@ -1,7 +1,7 @@
 /** @format */
 @media all and (min-width: 500px) {
   .loginBody,
-  .signupBody, 
+  .signupBody,
   .home {
     margin: 2rem 0rem auto;
     padding: 2rem 0rem;
