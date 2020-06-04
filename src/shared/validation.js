@@ -10,11 +10,11 @@ export const len = {
     max: 50,
   },
   question: {
-    min: 3,
-    max: 1000
+    min: 1,
+    max: 1000,
   },
   choice: {
-    min: 3,
-    max: 200
-  }
+    min: 1,
+    max: 200,
+  },
 };

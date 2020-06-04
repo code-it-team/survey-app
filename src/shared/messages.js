@@ -13,3 +13,8 @@ export const editSurvey = {
 export const publishSurvey = {
   success: "The survey has been publish successfully!",
 };
+
+export const submitSurvey = {
+  success: "The survey has been submitted successfully!",
+  failure: "There was an error preventing you from submitting the survey!",
+};

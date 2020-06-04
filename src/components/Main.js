@@ -626,7 +626,7 @@ class Main extends Component {
 
   surveySubmitPage = ({ match }) => {
     const surveyId = parseInt(match.params.id, 10);
-    return <SurveySubmit surveyId={surveyId} />;
+    return <SurveySubmit surveyId={surveyId.toString()} />;
   };
 
   // ############################################################

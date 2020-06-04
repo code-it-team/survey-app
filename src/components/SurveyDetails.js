@@ -12,6 +12,7 @@ import {
   FormGroup,
   Input,
   Label,
+  UncontrolledAlert,
 } from "reactstrap";
 import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
@@ -160,12 +161,18 @@ export default function SurveyDetails({
           className={`mt-5 btn-lg`}
           color="dark"
           onClick={activateSpinner}
+          disabled={survey.published}
         >
           {spinner} Submit
         </Button>
         <div className="mt-2 text-danger font-weight-bold">
           {helpers.renderInnerHTML(errors.post_survey)}
         </div>
+        {survey.published ? (
+          <UncontrolledAlert color="primary">
+            You cannot edit this survey as it's already published!
+          </UncontrolledAlert>
+        ) : null}
       </FormGroup>
     </Form>
   );
