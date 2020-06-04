@@ -19,6 +19,7 @@ import Home from "./Home";
 import Login from "./Login";
 import Signup from "./Signup";
 import SurveyDetails from "./SurveyDetails";
+import SurveySubmit from "./SurveySubmit";
 
 // #############################    State   #############################
 const INITIAL_STATE = {
@@ -623,6 +624,11 @@ class Main extends Component {
     );
   };
 
+  surveySubmitPage = ({ match }) => {
+    const surveyId = parseInt(match.params.id, 10);
+    return <SurveySubmit surveyId={surveyId.toString()} />;
+  };
+
   // ############################################################
   // ############################################################
   // ####################       Render       ####################
@@ -649,6 +655,10 @@ class Main extends Component {
             <Route path={routers.LOGIN} component={this.loginPage} />
             <Route path={routers.SIGNUP} component={this.signupPage} />
             <Route path={routers.GENERAL_ERROR} component={GeneralError} />
+            <Route
+              path={routers.SURVEY_SUBMIT}
+              component={this.surveySubmitPage}
+            />
             <Redirect to={routers.HOME} />
           </Switch>
           <Footer />
