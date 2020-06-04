@@ -1,3 +1,3 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/ac3b864b-718a-4cee-8098-9059b7928303/deploy-status)](https://app.netlify.com/sites/codeit-dev-survey-app/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/7480974d-b6c8-4846-934f-74ca1a8531dc/deploy-status)](https://app.netlify.com/sites/codeit-survey-app/deploys)
 
 ## Survey App from Code.it Team

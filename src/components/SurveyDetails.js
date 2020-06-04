@@ -18,6 +18,8 @@ import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as validation from "../shared/validation";
 import Question from "./Question";
+import { confirmAlert } from "react-confirm-alert"; // Import
+import "react-confirm-alert/src/react-confirm-alert.css"; // Import css
 
 /**
  * @param {object} props
@@ -50,7 +52,6 @@ export default function SurveyDetails({
   isEdit = false,
 }) {
   const [copied, setCopied] = useState(false);
-
   const handlePublish = () => {
     confirmAlert({
       title: "Confirm to Publish",
@@ -117,6 +118,11 @@ export default function SurveyDetails({
         </Fragment>
       ) : null}
       {publishButton()}
+      <FormGroup>
+        <Button color="success" type="button" onClick={handlePublish}>
+          Publish
+        </Button>
+      </FormGroup>
       <FormGroup>
         <Label htmlFor="survey-name" className="font-weight-bold">
           Survey Name
