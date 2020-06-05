@@ -3,23 +3,12 @@ import React, { Fragment, useState } from "react";
 import { confirmAlert } from "react-confirm-alert"; // Import
 import "react-confirm-alert/src/react-confirm-alert.css"; // Import css
 import { CopyToClipboard } from "react-copy-to-clipboard";
-import {
-  Alert,
-  Button,
-  Col,
-  Form,
-  FormFeedback,
-  FormGroup,
-  Input,
-  Label,
-  UncontrolledAlert,
-} from "reactstrap";
+import { Alert, Button, Col, Form, FormFeedback, FormGroup, Input, Label, UncontrolledAlert } from "reactstrap";
 import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as validation from "../shared/validation";
 import Question from "./Question";
-import { confirmAlert } from "react-confirm-alert"; // Import
-import "react-confirm-alert/src/react-confirm-alert.css"; // Import css
+
 
 /**
  * @param {object} props
