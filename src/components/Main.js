@@ -78,18 +78,11 @@ class Main extends Component {
     // if the user has a valid token, get all his/her surveys
     if (helpers.isAuth()) {
       this.getSurveys();
-      helpers.persistSurveys(this.state.surveys);
     }
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (helpers.isAuth()) {
-      // mirror surveys
-      if (_.isEqual(prevState.surveys, this.state.surveys))
-        helpers.persistSurveys(this.state.surveys);
-      // mirror errors
-      if (_.isEqual(prevState.errors, this.state.errors))
-        helpers.persistErrors(this.state.errors);
     }
   }
 
@@ -112,7 +105,6 @@ class Main extends Component {
     this.setState({
       errors: errors,
     });
-    helpers.persistErrors(errors);
   };
 
   resetState = () => {
@@ -470,7 +462,6 @@ class Main extends Component {
           // console.log(res);
 
           this.setState({ surveys: res.data.surveys });
-          helpers.persistSurveys(res.data.surveyDTOS);
 
           // save to locale storage
           // localStorage.setItem("surveys", JSON.stringify(this.state.surveys));

@@ -11,25 +11,13 @@ export const isAuth = () => (localStorage.getItem("jwt") ? true : false);
 // get the id of the logged in used, stored in the local storage
 export const getUserId = () => localStorage.getItem("id");
 
-// get the survey_name
-export const getSurveyName = () => localStorage.getItem("survey_name");
+// get the surveys of a user by ID from local storage
+export const getPersistentObject = objName =>
+  JSON.parse(localStorage.getItem(objName));
 
 // get the surveys of a user by ID from local storage
-export const getPersistentSurveys = () =>
-  JSON.parse(localStorage.getItem("surveys"));
-
-// get the surveys of a user by ID from local storage
-export const persistSurveys = state => {
-  localStorage.setItem("surveys", JSON.stringify(state));
-};
-
-// get the surveys of a user by ID from local storage
-export const getPersistentErrors = () =>
-  JSON.parse(localStorage.getItem("errors"));
-
-// get the surveys of a user by ID from local storage
-export const persistErrors = state => {
-  localStorage.setItem("errors", JSON.stringify(state));
+export const persistObject = (object, objName) => {
+  localStorage.setItem(objName, JSON.stringify(object));
 };
 
 // Converts errors to boolean "" => false 'no errors', otherwise true 'errors exist'

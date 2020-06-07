@@ -1,5 +1,8 @@
+import Axios from "axios";
 import _ from "lodash";
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
+import Tab from "react-bootstrap/Tab";
+import Tabs from "react-bootstrap/Tabs";
 import { confirmAlert } from "react-confirm-alert"; // Import
 import "react-confirm-alert/src/react-confirm-alert.css"; // Import css
 import { CopyToClipboard } from "react-copy-to-clipboard";
@@ -12,12 +15,19 @@ import {
   FormGroup,
   Input,
   Label,
+  Table,
   UncontrolledAlert,
 } from "reactstrap";
+import { baseUrl } from "../shared/baseUrl";
 import { QUESTION_COLOR_TEXT } from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as validation from "../shared/validation";
 import Question from "./Question";
+
+/**
+ * @typedef {object<string>} surveyStatistics
+ * @property {num} surveyId
+ */
 
 /**
  * @param {object} props
@@ -33,23 +43,64 @@ import Question from "./Question";
  * @param {number} props.survey.questions[].choices[].id
  * @param {string} props.survey.questions[].choices[].body
  */
-export default function SurveyDetails({
-  onSubmit,
-  onChange,
-  onBlur,
-  errors,
-  survey,
-  addQuestion,
-  removeQuestion,
-  addChoice,
-  removeChoice,
-  spinner,
-  activateSpinner,
-  redirectToHome,
-  publishSurvey,
-  isEdit = false,
-}) {
+export default function SurveyDetails(props) {
+  // ############################################################
+  // ############################################################
+  // #####################       Hooks       ####################
+  // ############################################################
+  // ############################################################
   const [copied, setCopied] = useState(false);
+  const [activeKey, setActiveKey] = useState("1");
+  /**
+   * @typedef {object} State
+   * @property {number} surveyId
+   * @property {string} surveyName
+   * @property {number} numberOfSubmissions
+   * @property {object[]} questionStatistics
+   * @property {number} questionStatistics[].questionId
+   * @property {string} questionStatistics[].questionBody
+   * @property {object[]} questionStatistics[].choiceStatistics
+   * @property {number} questionStatistics[].choiceStatistics[].choiceId
+   * @property {string} questionStatistics[].choiceStatistics[].choiceBody
+   * @property {string} questionStatistics[].choiceStatistics[].percentageOfSubmissions
+   *
+   * @typedef {Function} Setter
+   * @type {[State, Setter]} statistics
+   */
+  const [surveyStatistics, setSurveyStatistics] = useState({});
+
+  useEffect(() => {
+    if (helpers.isAuth()) {
+      getSurveyStatistics();
+    }
+  }, []);
+
+  const {
+    onSubmit,
+    onChange,
+    onBlur,
+    addQuestion,
+    removeQuestion,
+    addChoice,
+    removeChoice,
+    activateSpinner,
+    redirectToHome,
+    publishSurvey,
+    errors,
+    survey,
+    spinner,
+    isEdit = false,
+  } = props;
+
+  // ############################################################
+  // ############################################################
+  // ####################       Actions       ###################
+  // ############################################################
+  // ############################################################
+  const toggle = key => {
+    if (activeKey !== key) setActiveKey(key);
+  };
+
   const handlePublish = () => {
     confirmAlert({
       title: "Confirm to Publish",
@@ -70,8 +121,33 @@ export default function SurveyDetails({
     });
   };
 
+  const getSurveyStatistics = () => {
+    Axios.get(baseUrl + "surveyStatistics", {
+      headers: {
+        Authorization: helpers.getJWT(),
+      },
+      params: {
+        surveyId: survey.id,
+      },
+    })
+      .then(res => {
+        // console.log(res);
+        // if success
+        if (res.status === 200) {
+          setSurveyStatistics(res.data);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  };
+
+  // ############################################################
+  // ############################################################
+  // #####################       Views       ####################
+  // ############################################################
+  // ############################################################
   const publishButton = () => {
-    console.log(survey.published);
     const link =
       window.location.href.split(/(?=surveys)/)[0] +
       "submitSurvey/" +
@@ -106,18 +182,14 @@ export default function SurveyDetails({
     }
   };
 
-  let surveyForm = (
-    <Form name="surveyDetails" onSubmit={onSubmit} className="mx-3">
-      {isEdit ? (
-        <Fragment>
-          <FormGroup>
-            <Button color="primary" type="button" onClick={redirectToHome}>
-              Back to Home
-            </Button>
-          </FormGroup>
-        </Fragment>
-      ) : null}
+  const surveyForm = (
+    <Form name="surveyDetails" onSubmit={onSubmit} className="mx-3 mt-5">
       {publishButton()}
+      {survey.published ? (
+        <UncontrolledAlert color="primary">
+          You cannot edit this survey as it's already published!
+        </UncontrolledAlert>
+      ) : null}
       <FormGroup>
         <Label htmlFor="survey-name" className="font-weight-bold">
           Survey Name
@@ -131,6 +203,7 @@ export default function SurveyDetails({
           onChange={event => onChange(event, validation.survey_name)}
           onBlur={() => onBlur(validation.survey_name)}
           invalid={errors.name !== ""}
+          disabled={survey.published}
         />
         <FormFeedback>{helpers.renderInnerHTML(errors.name)}</FormFeedback>
       </FormGroup>
@@ -151,6 +224,7 @@ export default function SurveyDetails({
               question={question}
               removeChoice={removeChoice}
               removeQuestion={removeQuestion}
+              isPublished={survey.published}
             />
           ))}
         </ol>
@@ -169,19 +243,164 @@ export default function SurveyDetails({
         <div className="mt-2 text-danger font-weight-bold">
           {helpers.renderInnerHTML(errors.post_survey)}
         </div>
-        {survey.published ? (
-          <UncontrolledAlert color="primary">
-            You cannot edit this survey as it's already published!
-          </UncontrolledAlert>
-        ) : null}
       </FormGroup>
     </Form>
   );
+
+  const rowTitleClasses = "text-danger";
+  const questionRowClasses = "text-primary";
+
+  const generalTableBody = (
+    <tbody>
+      <tr>
+        <td className={rowTitleClasses}>
+          <strong>Survey ID</strong>
+        </td>
+        <td>{surveyStatistics.surveyId}</td>
+      </tr>
+      <tr>
+        <td className={rowTitleClasses}>
+          <strong>Survey Name</strong>
+        </td>
+        <td>{surveyStatistics.surveyName}</td>
+      </tr>
+      <tr>
+        <td className={rowTitleClasses}>
+          <strong>Number of Submissions</strong>
+        </td>
+        <td>{surveyStatistics.numberOfSubmissions}</td>
+      </tr>
+      <tr>
+        <td className={rowTitleClasses}>
+          <strong>Number of Questions</strong>
+        </td>
+        <td>
+          {surveyStatistics.questionStatistics &&
+            surveyStatistics.questionStatistics.length}
+        </td>
+      </tr>
+    </tbody>
+  );
+
+  const questionsTableBody = _.map(
+    surveyStatistics.questionStatistics,
+    (questionStatistic, questionId) => (
+      <Fragment key={questionId}>
+        <Table
+          responsive
+          hover
+          borderless
+          className="table mt-4"
+          id="table-toggler"
+        >
+          <thead>
+            <tr className="d-flex">
+              <th className={`${rowTitleClasses} col-4`}>Question Number </th>
+              <th>{questionId + 1}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="d-flex">
+              <td className={`${questionRowClasses} col-4`}>Question Body</td>
+              <td>{questionStatistic.questionBody}</td>
+            </tr>
+          </tbody>
+        </Table>
+        {_.map(
+          questionStatistic.choiceStatistics,
+          (choiceStatistic, choiceId) => {
+            return (
+              <Table
+                responsive
+                hover
+                bordered
+                className="table mt-4"
+                id="table-toggler"
+                key={`choice_${choiceId}`}
+              >
+                <thead>
+                  <tr className="d-flex">
+                    <th className="text-secondary col-4">Choice Number</th>
+                    <th className="col-4">{choiceId + 1}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="d-flex">
+                    <td className={`${questionRowClasses} col-4`}>
+                      Choice Body
+                    </td>
+                    <td className="col-4">{choiceStatistic.choiceBody}</td>
+                  </tr>
+                  <tr className="d-flex">
+                    <td className={`${questionRowClasses} col-4`}>
+                      Percentage of Submissions
+                    </td>
+                    <td className="col-4">
+                      {choiceStatistic.percentageOfSubmissions}
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
+            );
+          }
+        )}
+        <hr />
+      </Fragment>
+    )
+  );
+
+  const tabs = (
+    <Fragment>
+      {isEdit ? (
+        <FormGroup className="mb-4">
+          <Button color="primary" type="button" onClick={redirectToHome}>
+            Back to Home
+          </Button>
+        </FormGroup>
+      ) : null}
+      <Tabs activeKey={activeKey} onSelect={k => toggle(k)}>
+        <Tab eventKey="1" title="Survey">
+          {surveyForm}
+        </Tab>
+        <Tab eventKey="2" title="Statistics">
+          <p className="mt-5 text-success">
+            <ins>General Statistics:</ins>
+          </p>
+          <Table
+            responsive
+            hover
+            borderless
+            className="table"
+            id="table-toggler"
+          >
+            <thead>
+              <tr>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            {generalTableBody}
+          </Table>
+          <hr />
+          <p className="mt-5 text-success">
+            <ins>Questions Statistics:</ins>
+          </p>
+          {questionsTableBody}
+        </Tab>
+      </Tabs>
+    </Fragment>
+  );
+
+  // ############################################################
+  // ############################################################
+  // #####################       Return       ####################
+  // ############################################################
+  // ############################################################
   return isEdit ? (
     <Col className="col-md-8 offset-md-2">
-      <div className="mb-4">{surveyForm}</div>
+      <div className="mb-4">{tabs}</div>
     </Col>
   ) : (
-    surveyForm
+    tabs
   );
 }

@@ -1,8 +1,20 @@
 import _ from "lodash";
 import PropTypes from "prop-types";
 import React from "react";
-import { Button, FormFeedback, FormGroup, Input, Label, UncontrolledTooltip } from "reactstrap";
-import { CHOICE_BTN_COLOR, CHOICE_COLOR_TEXT, QUESTION_BTN_COLOR, QUESTION_COLOR_TEXT } from "../shared/globals";
+import {
+  Button,
+  FormFeedback,
+  FormGroup,
+  Input,
+  Label,
+  UncontrolledTooltip,
+} from "reactstrap";
+import {
+  CHOICE_BTN_COLOR,
+  CHOICE_COLOR_TEXT,
+  QUESTION_BTN_COLOR,
+  QUESTION_COLOR_TEXT,
+} from "../shared/globals";
 import * as helpers from "../shared/helperFunctions";
 import * as VALIDATION from "../shared/validation";
 
@@ -16,6 +28,7 @@ export default function Question({
   addQuestion,
   removeQuestion,
   errors,
+  isPublished,
 }) {
   return (
     <li className="mb-5" key={question_id}>
@@ -31,6 +44,7 @@ export default function Question({
           onChange={event => onChange(event, VALIDATION.question, question_id)}
           onBlur={() => onBlur(VALIDATION.question, question_id)}
           invalid={helpers.errorsToBool(errors.questions[question_id].body)}
+          disabled={isPublished}
         />
         <FormFeedback>
           {helpers.renderInnerHTML(errors.questions[question_id].body)}
@@ -43,6 +57,7 @@ export default function Question({
             color={`${QUESTION_BTN_COLOR}`}
             onClick={() => removeQuestion(question_id)}
             id="remove-question"
+            disabled={isPublished}
           >
             <i className="fa fa-minus fa-center" id="remove-question"></i>
             <UncontrolledTooltip placeholder="top" target="remove-question">
@@ -55,6 +70,7 @@ export default function Question({
             color={`${QUESTION_BTN_COLOR}`}
             onClick={() => addQuestion(question_id)}
             id="add-question"
+            disabled={isPublished}
           >
             <i className="fa fa-plus fa-center" id="add-question"></i>
             <UncontrolledTooltip placeholder="top" target="add-question">
@@ -88,6 +104,7 @@ export default function Question({
                     invalid={helpers.errorsToBool(
                       errors.questions[question_id].choices[choice_id].body
                     )}
+                    disabled={isPublished}
                   />
                   <FormFeedback>
                     {helpers.renderInnerHTML(
@@ -103,6 +120,7 @@ export default function Question({
                       color={`${CHOICE_BTN_COLOR}`}
                       onClick={() => removeChoice(question_id, choice_id)}
                       id="remove-choice"
+                      disabled={isPublished}
                     >
                       <i
                         className="fa fa-minus fa-center"
@@ -121,6 +139,7 @@ export default function Question({
                       color={`${CHOICE_BTN_COLOR}`}
                       onClick={() => addChoice(question_id, choice_id)}
                       id="add-choice"
+                      disabled={isPublished}
                     >
                       <i className="fa fa-plus fa-center" id="add-choice"></i>
                       <UncontrolledTooltip
@@ -156,4 +175,5 @@ Question.propTypes = {
   addQuestion: PropTypes.func.isRequired,
   removeQuestion: PropTypes.func.isRequired,
   errors: PropTypes.object.isRequired,
+  isPublished: PropTypes.bool.isRequired,
 };
