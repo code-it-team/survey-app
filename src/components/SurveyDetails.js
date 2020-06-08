@@ -366,26 +366,35 @@ export default function SurveyDetails(props) {
           <p className="mt-5 text-success">
             <ins>General Statistics:</ins>
           </p>
-          <Table
-            responsive
-            hover
-            borderless
-            className="table"
-            id="table-toggler"
-          >
-            <thead>
-              <tr>
-                <th></th>
-                <th></th>
-              </tr>
-            </thead>
-            {generalTableBody}
-          </Table>
-          <hr />
-          <p className="mt-5 text-success">
-            <ins>Questions Statistics:</ins>
-          </p>
-          {questionsTableBody}
+          {survey.published ? (
+            <Fragment>
+              <Table
+                responsive
+                hover
+                borderless
+                className="table"
+                id="table-toggler"
+              >
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                {generalTableBody}
+              </Table>
+              <hr />
+              <p className="mt-5 text-success">
+                <ins>Questions Statistics:</ins>
+              </p>
+              {questionsTableBody}
+            </Fragment>
+          ) : (
+            <p>
+              No statistics yet. The survey must be published to have this
+              feature.
+            </p>
+          )}
         </Tab>
       </Tabs>
     </Fragment>
